@@ -47,6 +47,7 @@ unsigned short ttyptt[1200];
 bool picturezoomenabled = false;
 short picturezoom = 1;
 void *mapcontents = NULL;
+unsigned int maparrsize = 0;
 char maphead[5] = { '0', '0', '0', '0', '\0'};
 unsigned int mapver = -1;
 unsigned int maptotalx = -1;
@@ -523,6 +524,7 @@ int main(int argc, char** argv)
 				short maptiletexture = -1;
 				TerrainTypes maptileterrain = ttsand;
 				int nowmapy=-1, nowmapx=-1;
+				maparrsize = maparraysize;
 				for(int counter=0; counter<maparraysize; counter++)
 				{
 					nowmapy = counter/maptotaly;
@@ -555,58 +557,56 @@ int main(int argc, char** argv)
 						log_warn("Fread scanned %d elements instead of %d (height)", mapreadret, 1);
 					log_trace("Height %d", mapheight[counter]);
 				}
-				
-				//
-				
 				log_info("End of reading map data.");
-				log_info("Trying to write image...");
-				log_info("Generating filename...");
-				char pngfilename[MAX_PATH_LEN];
-				if(CustomOutputPathFlag) {
-					log_debug("Using override... (\"%s\")", CustomOutputPath);
-					snprintf(pngfilename, MAX_PATH_LEN, "%s", CustomOutputPath);
-				} else {
-					snprintf(pngfilename, MAX_PATH_LEN, "output/%s.png", mapname);
-				}
-				log_info("Filename: %s", pngfilename);
-				log_info("Creating file...");
-				log_debug("Creating array of pixels...");
-				uint8_t PngPixels[maparraysize*3*picturezoom];
-				int PngPixelsCounter=0;
-				for(int i=0; i<maparraysize; i++)
-				{
-					if(mapwater[i]) {
-						PngPixels[PngPixelsCounter] = mapheight[i]/4;
-						PngPixels[PngPixelsCounter+1] = mapheight[i]/4;
-						PngPixels[PngPixelsCounter+2] = mapheight[i];
-					}
-					else if(mapcliff[i]) {
-						PngPixels[PngPixelsCounter] = mapheight[i];
-						PngPixels[PngPixelsCounter+1] = mapheight[i]/4;
-						PngPixels[PngPixelsCounter+2] = mapheight[i]/4;
-					} else {
-						PngPixels[PngPixelsCounter] = mapheight[i];
-						PngPixels[PngPixelsCounter+1] = mapheight[i];
-						PngPixels[PngPixelsCounter+2] = mapheight[i];
-					}
-					PngPixelsCounter+=3;
-				}
-				log_debug("Array created!");
-				try {
-					std::ofstream out(pngfilename, std::ios::binary);
-					TinyPngOut pngout(static_cast<uint32_t>(maptotalx), static_cast<uint32_t>(maptotaly), out);
-					pngout.write(PngPixels, static_cast<size_t>(maptotalx * maptotaly));
-				} catch (const std::exception& ex) {
-					log_error("%s", ex.what());
-				}
-				log_info("Image creation DONE!");
-				printf("Heightmap writed to %s\n", pngfilename);
 			}
 		}
 		free(mapcontents);
 		mapcontents = NULL;
 		zip_entry_close(zip);
 	}
+	
+	log_info("Trying to write image...");
+	log_info("Generating filename...");
+	char pngfilename[MAX_PATH_LEN];
+	if(CustomOutputPathFlag) {
+		log_debug("Using override... (\"%s\")", CustomOutputPath);
+		snprintf(pngfilename, MAX_PATH_LEN, "%s", CustomOutputPath);
+	} else {
+		snprintf(pngfilename, MAX_PATH_LEN, "output/%s.png", mapname);
+	}
+	log_info("Filename: %s", pngfilename);
+	log_info("Creating file...");
+	log_debug("Creating array of pixels...");
+	uint8_t PngPixels[maparrsize*3];
+	int PngPixelsCounter=0;
+	for(int i=0; i<maparrsize; i++)
+	{
+		if(mapwater[i]) {
+			PngPixels[PngPixelsCounter] = mapheight[i]/4;
+			PngPixels[PngPixelsCounter+1] = mapheight[i]/4;
+			PngPixels[PngPixelsCounter+2] = mapheight[i];
+		}
+		else if(mapcliff[i]) {
+			PngPixels[PngPixelsCounter] = mapheight[i];
+			PngPixels[PngPixelsCounter+1] = mapheight[i]/4;
+			PngPixels[PngPixelsCounter+2] = mapheight[i]/4;
+		} else {
+			PngPixels[PngPixelsCounter] = mapheight[i];
+			PngPixels[PngPixelsCounter+1] = mapheight[i];
+			PngPixels[PngPixelsCounter+2] = mapheight[i];
+		}
+		PngPixelsCounter+=3;
+	}
+	log_debug("Array created!");
+	try {
+		std::ofstream out(pngfilename, std::ios::binary);
+		TinyPngOut pngout(static_cast<uint32_t>(maptotalx), static_cast<uint32_t>(maptotaly), out);
+		pngout.write(PngPixels, static_cast<size_t>(maptotalx * maptotaly));
+	} catch (const std::exception& ex) {
+		log_error("%s", ex.what());
+	}
+	log_info("Image creation DONE!");
+	printf("Image writed to %s\n", pngfilename);
 	
 	exit(0);
 }
