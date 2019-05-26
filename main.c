@@ -18,6 +18,7 @@
 #include "zip.h"
 #include "log.h"
 #include "TinyPngOut.hpp"
+#include "jfes.h"
 
 #ifndef WMV_VERSION
 #define WMV_VERSION 0
@@ -68,9 +69,7 @@ enum TerrainTypes { ttsand,
 					ttrubble, 
 					ttsheetice, 
 					ttslush, 
-					ttmax
-};
-
+					ttmax};
 const char *TerrainTypesStrings[] = {"sand", "sandy brush", "baked earth", "green mud", "red brush", "pink rock", "road", "water", "cliffface", "rubble", "sheetice", "slush", "max"};
 
 bool equalstr(char* trg, const char* chk) {
@@ -607,6 +606,34 @@ int main(int argc, char** argv)
 	}
 	log_info("Image creation DONE!");
 	printf("Image writed to %s\n", pngfilename);
+	
+	
+	log_info("Finding index of struct.json... ");                         //FIXME this way not best
+	int indextstructs=-1;
+	for(int index=0; index<totalentries; index++)
+		if(str_match(filenames[index], (char*)"struct.json"))
+			indextstructs=index;
+	if(indextstructs==-1)
+	{
+		log_fatal("Finding index of struct.json... FAIL!!!!!");
+		exit(0);
+	}
+	else {
+		log_info("Finding index of struct.json... %d", indextstructs);
+		log_info("Found: %s", filenames[indextstructs]);
+	}
+	
+	/*
+	log_trace("Preparing for json reading");
+	jfes_config_t config;
+	config.jfes_malloc = malloc;
+	config.jfes_free = free;
+	jfes_value_t value;
+	log_trace("Preparing for json reading DONE");
+	log_info("Parsing json...");
+	jfes_status_t status = jfes_parse_to_value(&config, json_data, buffer_size, &value);
+	*/
+	
 	
 	exit(0);
 }
