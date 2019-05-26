@@ -106,7 +106,7 @@ int ArgParse(int argc, char **argv) {
 		} else if(equalstr(argv[argcounter], "--ignore-free")) {
 			IgnoreFree = true;
 		} else if(equalstr(argv[argcounter], "-z")) {
-			picturezoomenable = true;
+			picturezoomenabled = true;
 			picturezoom = atoi(argv[argcounter+1]);
 			argcounter++;
 		} else if(equalstr(argv[argcounter], "-o")) {
@@ -186,7 +186,7 @@ void cleanexit(void)
 
 int main(int argc, char** argv)
 {
-	printf("Warzone 2100 Maps Viewer\n");
+	printf("Warzone 2100 Maps Tool\n");
 	log_set_level(LOG_FATAL);
 	ArgParse(argc, argv);
 	if(argc <= 1) {
