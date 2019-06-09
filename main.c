@@ -1,30 +1,11 @@
-
-/* Copyright (C) Maxim Zhuchkov - All Rights Reserved
+/*
+ * Copyright (C) Maxim Zhuchkov - All Rights Reserved
  * Unauthorized copying of this file, via any medium is strictly prohibited
  * Proprietary and confidential
  * Written by Maxim Zhuchkov <q3.max.2011@ya.ru>, May 2019
  */
 
-
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include <assert.h>
-#include <signal.h>
-#include <stdarg.h>
-#include <fstream>
-#include <iostream>
-
-#include "zip.h"
-#include "log.h"
-#include "TinyPngOut.hpp"
-#include "jfes.h"
-
-#ifndef WMV_VERSION
-#define WMV_VERSION 0
-#endif
-
-#define MAX_PATH_LEN 2048
+#include "wmt.h"
 
 int DebugPrintLevel = 0;
 char* wzmappath;
@@ -34,6 +15,8 @@ char CustomOutputPath[MAX_PATH_LEN];
 bool EnableFilterWater = false;
 bool EnableFilterCliffs = false;
 bool EnableFilterTextrue = false;
+bool picturezoomenabled = false;
+short picturezoom = 1;
 
 char **filenames = NULL;
 struct zip_t *zip;
@@ -45,41 +28,17 @@ unsigned int ttypver = -1;
 unsigned int ttypnum = -1;
 unsigned short ttyptt[1200];
 
-bool picturezoomenabled = false;
-short picturezoom = 1;
 void *mapcontents = NULL;
-unsigned int maparrsize = 0;
 char maphead[5] = { '0', '0', '0', '0', '\0'};
+unsigned int maparrsize = 0;
 unsigned int mapver = -1;
 unsigned int maptotalx = -1;
 unsigned int maptotaly = -1;
 bool mapwater[90000];
 bool mapcliff[90000];
 unsigned short *mapheight;
-unsigned short mapwateroffset = 0x01ff;
-enum TerrainTypes { ttsand, 
-					ttsandybrush, 
-					ttbakedearth, 
-					ttgreenmud, 
-					ttredbrush, 
-					ttpinkrock, 
-					ttroad, 
-					ttwater, 
-					ttclifface, 
-					ttrubble, 
-					ttsheetice, 
-					ttslush, 
-					ttmax};
-const char *TerrainTypesStrings[] = {"sand", "sandy brush", "baked earth", "green mud", "red brush", "pink rock", "road", "water", "cliffface", "rubble", "sheetice", "slush", "max"};
+unsigned short maptileoffset = 0x01ff;
 
-bool equalstr(char* trg, const char* chk) {
-	if(strlen(trg)!=strlen(chk))
-		return false;
-	for(unsigned int c=0; c<strlen(trg); c++)
-		if(trg[c]!=chk[c])
-			return false;
-	return true;
-}
 
 int ArgParse(int argc, char **argv) {
 	for(int argcounter=2; argcounter<argc; argcounter++) {
@@ -102,7 +61,7 @@ int ArgParse(int argc, char **argv) {
 			printf("You better stop reading logs...\n");
 			log_set_level(LOG_TRACE);
 		} else if(equalstr(argv[argcounter], "--version")) {
-			printf("Version %d\nLog version %s\nUsing miniz.h version 9.1.15\n", WMV_VERSION, LOG_VERSION);
+			printf("Version %d\nLog version %s\nUsing miniz.h version 9.1.15\n", WMT_VERSION, LOG_VERSION);
 		} else if(equalstr(argv[argcounter], "--ignore-free")) {
 			IgnoreFree = true;
 		} else if(equalstr(argv[argcounter], "-z")) {
@@ -142,34 +101,7 @@ int ArgParse(int argc, char **argv) {
 	return 0;
 }
 
-int str_cut(char *str, int begin, int len) {
-    int l = strlen(str);
-    if (len < 0) len = l - begin;
-    if (begin + len > l) len = l - begin;
-    memmove(str + begin, str + begin + len, l - len + 1);
-    return len;
-}
-
-bool str_match(char* str, char* sub) {
-	log_trace("String match between \"%s\" and \"%s\"", str, sub);
-	int i, j=0, k;
-	for(i=0; str[i]; i++) {
-		if(str[i] == sub[j]) {
-			for(k=i, j=0; str[k] && sub[j]; j++, k++)
-				if(str[k]!=sub[j])
-					break;
-			if(!sub[j]) {
-				//printf(" SUB\n");
-				return true;
-			}
-		}
-	}
-	//printf(" NOTSUB\n");
-	return false;
-}
-
-void cleanexit(void)
-{
+void cleanexit(void) {
 	log_info("Cleaning up...");
 	free(ttpcontents);
 	free(mapcontents);
@@ -190,7 +122,7 @@ int main(int argc, char** argv)
 	log_set_level(LOG_FATAL);
 	ArgParse(argc, argv);
 	if(argc <= 1) {
-		log_fatal("No enough args... Plz read help.");
+		log_fatal("No enough args... Plz read help. (--help)");
 		exit(0);
 	}
 	
@@ -260,8 +192,7 @@ int main(int argc, char** argv)
 		log_trace("Trying index %d", index);
 		int ret = zip_entry_openbyindex(zip, index);
 		log_trace("Ret %d", ret);
-		if(ret>=0)
-		{
+		if(ret>=0) {
 			snprintf(filenames[index], 1024, "%s", (char*)zip_entry_name(zip));
 			log_trace("%d.\t%s", index, filenames[index]);
 			zip_entry_close(zip);
@@ -272,22 +203,7 @@ int main(int argc, char** argv)
 	log_info("Listing all shit up... DONE!");
 	
 	
-	log_info("Finding index of ttypes.ttp... ");                         //FIXME this way not best
-	int indexttypes=-1;
-	for(int index=0; index<totalentries; index++)
-		if(str_match(filenames[index], (char*)"ttypes.ttp"))
-			indexttypes=index;
-	if(indexttypes==-1)
-	{
-		log_fatal("Finding index of ttypes.ttp... FAIL!!!!!");
-		exit(0);
-	}
-	else {
-		log_info("Finding index of ttypes.ttp... %d", indexttypes);
-		log_info("Found: %s", filenames[indexttypes]);
-	}
-	
-	
+	int indexttypes = SearchFilename(filenames, totalentries, (char*)"ttypes.ttp", 2);
 	log_info("Opening file by index... ");
 	int openstatus = zip_entry_openbyindex(zip, indexttypes);
 	if(openstatus<0) {
@@ -321,7 +237,10 @@ int main(int argc, char** argv)
 			else
 			{
 				log_info("Making shure that found file is a ttp file... \"%s\"", ttphead);
-				if(equalstr(ttphead, "ttyp"))
+				if(ttphead[0] != 't' ||
+				   ttphead[1] != 't' ||
+				   ttphead[2] != 'y' ||
+				   ttphead[3] != 'p')
 					log_warn("Warning! File header not ttyp!!! (ignore thats not working properly!)");
 				log_info("Reading ttp version... ");
 				ssize_t ttypverreadret = fread(&ttypver, sizeof(unsigned int), 1, ttpf);
@@ -388,10 +307,7 @@ int main(int argc, char** argv)
 	}
 	
 	log_info("Searching for game.map file... ");
-	int indexgamemap=-1;
-	for(int index=0; index<totalentries; index++)
-		if(str_match(filenames[index], (char*)"game.map"))
-			indexgamemap=index;
+	int indexgamemap = SearchFilename(filenames, totalentries, (char*)"game.map", 1);
 	if(indexgamemap==-1)
 	{
 		log_error("Searching for game.map file... FAIL!");
@@ -533,7 +449,7 @@ int main(int argc, char** argv)
 					if(mapreadret != 1)
 						log_warn("Fread scanned %d elements instead of %d (tileinfo)", mapreadret, 1);
 					log_trace("Tile info %d", maptileinfo);
-					maptiletexture = (maptileinfo & mapwateroffset);
+					maptiletexture = (maptileinfo & maptileoffset);
 					log_trace("maptiletexture %d", maptiletexture);
 					/*if(maptiletexture > 12 || maptiletexture < 0) {
 						log_error("Map tile texture not in range! (%d)", maptiletexture);
@@ -574,11 +490,31 @@ int main(int argc, char** argv)
 		snprintf(pngfilename, MAX_PATH_LEN, "output/%s.png", mapname);
 	}
 	log_info("Filename: %s", pngfilename);
+	
+	/*PngImage OutputImg((unsigned int)maptotalx, (unsigned int)maptotaly);
+	for(unsigned short counterx=0; counterx<maptotalx; counterx++)
+	{
+		for(unsigned short countery=0; countery<maptotaly; countery++)
+		{
+			int nowposinarray = countery*maptotalx+counterx;
+			if(mapwater[nowposinarray]) {
+				OutputImg.PutPixel(counterx, countery, mapheight[nowposinarray]/4, mapheight[nowposinarray]/4, mapheight[nowposinarray]);
+			}
+			else if(mapcliff[nowposinarray]) {
+				OutputImg.PutPixel(counterx, countery, mapheight[nowposinarray], mapheight[nowposinarray]/4, mapheight[nowposinarray]/4);
+			} else {
+				OutputImg.PutPixel(counterx, countery, mapheight[nowposinarray], mapheight[nowposinarray], mapheight[nowposinarray]);
+			}
+		}
+	}
+	OutputImg.WriteImage(pngfilename);
+	printf("\nHeightmap written to %s\n", pngfilename);*/
+	
 	log_info("Creating file...");
 	log_debug("Creating array of pixels...");
 	uint8_t PngPixels[maparrsize*3];
 	int PngPixelsCounter=0;
-	for(int i=0; i<maparrsize; i++)
+	for(unsigned int i=0; i<maparrsize; i++)
 	{
 		if(mapwater[i]) {
 			PngPixels[PngPixelsCounter] = mapheight[i]/4;
@@ -608,33 +544,17 @@ int main(int argc, char** argv)
 	printf("Image writed to %s\n", pngfilename);
 	
 	
-	log_info("Finding index of struct.json... ");                         //FIXME this way not best
-	int indextstructs=-1;
-	for(int index=0; index<totalentries; index++)
-		if(str_match(filenames[index], (char*)"struct.json"))
-			indextstructs=index;
-	if(indextstructs==-1)
-	{
-		log_fatal("Finding index of struct.json... FAIL!!!!!");
-		exit(0);
+	log_info("Checking that struct.json does not exist...");                                  //FIXME parse json
+	int indexjsonstructs = SearchFilename(filenames, totalentries, (char*)"struct.json", 0);  
+	if(indexjsonstructs != -1) {
+		log_warn("struct.json exists!!! (%d)", indexjsonstructs);
+		log_warn("Sorry, but this tool still too dumb to read structs...");
 	}
-	else {
-		log_info("Finding index of struct.json... %d", indextstructs);
-		log_info("Found: %s", filenames[indextstructs]);
+	int indexstructs = SearchFilename(filenames, totalentries, (char*)"struct.ini", 2);       //FIXME parse INI
+	if(indexstructs != -1) {                                                                  //FIXME parse old maps
+		log_warn("struct.ini exists!!! (%d)", indexstructs);
+		log_warn("Sorry, but this tool still too dumb to read structs...");
 	}
-	
-	/*
-	log_trace("Preparing for json reading");
-	jfes_config_t config;
-	config.jfes_malloc = malloc;
-	config.jfes_free = free;
-	jfes_value_t value;
-	log_trace("Preparing for json reading DONE");
-	log_info("Parsing json...");
-	jfes_status_t status = jfes_parse_to_value(&config, json_data, buffer_size, &value);
-	*/
-	
-	
 	exit(0);
 }
 

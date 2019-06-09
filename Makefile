@@ -1,10 +1,14 @@
-all: log png zip
-	g++ -Izip/src/ -Lzip/build log.o TinyPngOut.o zip.o main.c -o WMT -g -DLOG_USE_COLOR -O2 -Wall
-log:
-	g++ log.c -o log.o -c -DLOG_USE_COLOR -O2 -Wall
-png:
-	g++ TinyPngOut.cpp -o TinyPngOut.o -c -O2 -Wall
-zip:
-	g++ zip.c -o zip.o -c -O2 -Wall
+
+
+all: log.o png.o zip.o wmt.o
+	g++ wmt.o log.o png.o zip.o main.c -o WMT -g -O0 -Wall
+log.o:
+	g++ log.c -o log.o -c -DLOG_USE_COLOR -O0 -Wall
+png.o:
+	g++ TinyPngOut.cpp -o png.o -c -O0 -Wall
+zip.o:
+	g++ zip.c -o zip.o -c -O0 -Wall
+wmt.o:
+	g++ wmt.c -o wmt.o -c -O0 -Wall
 clean:
 	rm *.o WMT
