@@ -16,7 +16,8 @@ bool EnableFilterWater = false;
 bool EnableFilterCliffs = false;
 bool EnableFilterTextrue = false;
 bool picturezoomenabled = false;
-short picturezoom = 1;
+unsigned short picturezoom = 1;
+bool OpenWithFeh=false;
 
 char **filenames = NULL;
 struct zip_t *zip;
@@ -64,6 +65,8 @@ int ArgParse(int argc, char **argv) {
 			printf("Version %d\nLog version %s\nUsing miniz.h version 9.1.15\n", WMT_VERSION, LOG_VERSION);
 		} else if(equalstr(argv[argcounter], "--ignore-free")) {
 			IgnoreFree = true;
+		} else if(equalstr(argv[argcounter], "-feh")) {
+			OpenWithFeh = true;
 		} else if(equalstr(argv[argcounter], "-z")) {
 			picturezoomenabled = true;
 			picturezoom = atoi(argv[argcounter+1]);
@@ -88,8 +91,9 @@ int ArgParse(int argc, char **argv) {
 			printf("	--version       Show version and exit.\n");
 			printf("	--ignore-free   Lazy checks of freeing memory. (default false)\n");
 			printf("	                 Dont use this in big scripts with multirunning.\n");
-			printf("    -z <level>      Overrides zoom level of image. (ex. zoom=1 pixels:tiles 1:1 \n");
-			printf("                     zoom=4 pixels:tiles 4:1                                      ");
+			printf("	-z <level>      Overrides zoom level of image. (ex. zoom=1 pixels:tiles 1:1 \n");
+			printf("                     zoom=4 pixels:tiles 4:1)                                     ");
+			printf("    -feh            Open output image with feh                                    ");
 			//printf("	-q [--quiet]    No stdout output.\n");
 			printf("\n");
 			exit(0);
@@ -491,57 +495,28 @@ int main(int argc, char** argv)
 	}
 	log_info("Filename: %s", pngfilename);
 	
-	/*PngImage OutputImg((unsigned int)maptotalx, (unsigned int)maptotaly);
-	for(unsigned short counterx=0; counterx<maptotalx; counterx++)
-	{
-		for(unsigned short countery=0; countery<maptotaly; countery++)
-		{
-			int nowposinarray = countery*maptotalx+counterx;
-			if(mapwater[nowposinarray]) {
-				OutputImg.PutPixel(counterx, countery, mapheight[nowposinarray]/4, mapheight[nowposinarray]/4, mapheight[nowposinarray]);
-			}
-			else if(mapcliff[nowposinarray]) {
-				OutputImg.PutPixel(counterx, countery, mapheight[nowposinarray], mapheight[nowposinarray]/4, mapheight[nowposinarray]/4);
-			} else {
-				OutputImg.PutPixel(counterx, countery, mapheight[nowposinarray], mapheight[nowposinarray], mapheight[nowposinarray]);
+	
+	
+	PngImage OutputImg((unsigned int)maptotalx*picturezoom+picturezoom, (unsigned int)maptotaly*picturezoom+picturezoom);
+	for(unsigned short counterx=0; counterx<maptotalx; counterx++) {
+		for(unsigned short countery=0; countery<maptotaly; countery++) {
+			for(unsigned short zoomcounterx=counterx*picturezoom; zoomcounterx<counterx*picturezoom+picturezoom; zoomcounterx++) {
+				for(unsigned short zoomcountery=countery*picturezoom; zoomcountery<countery*picturezoom+picturezoom; zoomcountery++) {
+					int nowposinarray = countery*maptotalx+counterx;
+					if(mapwater[nowposinarray]) {
+						OutputImg.PutPixel(zoomcounterx, zoomcountery, mapheight[nowposinarray]/4, mapheight[nowposinarray]/4, mapheight[nowposinarray]);
+					}
+					else if(mapcliff[nowposinarray]) {
+						OutputImg.PutPixel(zoomcounterx, zoomcountery, mapheight[nowposinarray], mapheight[nowposinarray]/4, mapheight[nowposinarray]/4);   //FIXME not the best way
+					} else {
+						OutputImg.PutPixel(zoomcounterx, zoomcountery, mapheight[nowposinarray], mapheight[nowposinarray], mapheight[nowposinarray]);
+					}
+				}
 			}
 		}
 	}
 	OutputImg.WriteImage(pngfilename);
-	printf("\nHeightmap written to %s\n", pngfilename);*/
-	
-	log_info("Creating file...");
-	log_debug("Creating array of pixels...");
-	uint8_t PngPixels[maparrsize*3];
-	int PngPixelsCounter=0;
-	for(unsigned int i=0; i<maparrsize; i++)
-	{
-		if(mapwater[i]) {
-			PngPixels[PngPixelsCounter] = mapheight[i]/4;
-			PngPixels[PngPixelsCounter+1] = mapheight[i]/4;
-			PngPixels[PngPixelsCounter+2] = mapheight[i];
-		}
-		else if(mapcliff[i]) {
-			PngPixels[PngPixelsCounter] = mapheight[i];
-			PngPixels[PngPixelsCounter+1] = mapheight[i]/4;
-			PngPixels[PngPixelsCounter+2] = mapheight[i]/4;
-		} else {
-			PngPixels[PngPixelsCounter] = mapheight[i];
-			PngPixels[PngPixelsCounter+1] = mapheight[i];
-			PngPixels[PngPixelsCounter+2] = mapheight[i];
-		}
-		PngPixelsCounter+=3;
-	}
-	log_debug("Array created!");
-	try {
-		std::ofstream out(pngfilename, std::ios::binary);
-		TinyPngOut pngout(static_cast<uint32_t>(maptotalx), static_cast<uint32_t>(maptotaly), out);
-		pngout.write(PngPixels, static_cast<size_t>(maptotalx * maptotaly));
-	} catch (const std::exception& ex) {
-		log_error("%s", ex.what());
-	}
-	log_info("Image creation DONE!");
-	printf("Image writed to %s\n", pngfilename);
+	printf("\nHeightmap written to %s\n", pngfilename);
 	
 	
 	log_info("Checking that struct.json does not exist...");                                  //FIXME parse json
@@ -555,6 +530,15 @@ int main(int argc, char** argv)
 		log_warn("struct.ini exists!!! (%d)", indexstructs);
 		log_warn("Sorry, but this tool still too dumb to read structs...");
 	}
+	
+	if(OpenWithFeh) {
+		log_info("Opening output with feh");
+		char fehcmd[MAX_PATH_LEN];
+		snprintf(fehcmd, MAX_PATH_LEN, "feh %s", pngfilename);
+		int retval = system(fehcmd);
+		log_debug("system call returned %d", retval);
+	}
+	
 	exit(0);
 }
 

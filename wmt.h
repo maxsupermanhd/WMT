@@ -40,15 +40,19 @@ struct PngImage {
 	int w=0, h=0;
 	long totalpixels;
 	char filename[MAX_PATH_LEN];
-	uint8_t pixels[187500];
+	uint8_t* pixels;
 	
-	PngImage();
 	
 	PngImage(unsigned int nw, unsigned int nh)
 	{
 		w=nw;
 		h=nh;
 		totalpixels = nw*nh*3;
+		pixels = (uint8_t*) malloc(totalpixels*sizeof(uint8_t));
+	}
+	
+	~PngImage() {
+		free(pixels);
 	}
 	
 	bool PutPixel(short x, short y, uint8_t r, uint8_t g, uint8_t b)
@@ -61,9 +65,10 @@ struct PngImage {
 			log_error("Putting pixel out of bound! (putting to %d %d)", x, y);
 			return false;
 		}
-		pixels[y*h*3+x*3+0] = r;
-		pixels[y*h*3+x*3+1] = g;
-		pixels[y*h*3+x*3+2] = b;
+		//log_debug("Putting pixel to %d %d in %d", x, y, y*w*3+x*3);
+		pixels[y*w*3+x*3+0] = r;
+		pixels[y*w*3+x*3+1] = g;
+		pixels[y*w*3+x*3+2] = b;
 		return true;
 	}
 	
