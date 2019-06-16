@@ -52,7 +52,7 @@ Mkfile.old
 dkms.conf
 
 # Default output dir
-.output/*
+.output/
 
 # Binary
 WMT

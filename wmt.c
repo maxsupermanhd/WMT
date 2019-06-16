@@ -355,7 +355,7 @@ char* WriteImage(struct WZmap map, bool CustomPath, char* CustomOutputPath, int 
 	} else {
 		snprintf(pngfilename, MAX_PATH_LEN, "output/%s.png", map.mapname);
 	}
-	PngImage OutputImg((unsigned int)map.maptotalx*picturezoom+picturezoom, (unsigned int)map.maptotaly*picturezoom+picturezoom);
+	PngImage OutputImg((unsigned int)map.maptotalx*picturezoom, (unsigned int)map.maptotaly*picturezoom);
 	for(unsigned short counterx=0; counterx<map.maptotalx; counterx++) {
 		for(unsigned short countery=0; countery<map.maptotaly; countery++) {
 			for(unsigned short zoomcounterx=counterx*picturezoom; zoomcounterx<counterx*picturezoom+picturezoom; zoomcounterx++) {
