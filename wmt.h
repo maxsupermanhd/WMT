@@ -1,7 +1,7 @@
 /*
  * Copyright (C) Maxim Zhuchkov - All Rights Reserved
  * Unauthorized copying of this file, via any medium is strictly prohibited
- * Proprietary and confidential
+ * Proprietary and confidential 
  * Written by Maxim Zhuchkov <q3.max.2011@ya.ru>, May 2019
  */
 
@@ -30,18 +30,57 @@
 
 enum TerrainTypes { ttsand, ttsandybrush, ttbakedearth, ttgreenmud, ttredbrush, ttpinkrock, ttroad, ttwater, ttclifface, ttrubble, ttsheetice, ttslush, ttmax};
 extern const char* TerrainTypesStrings[];
+extern unsigned short maptileoffset;
 
 bool equalstr(char* trg, const char* chk);
 int str_cut(char *str, int begin, int len);
 bool str_match(char* str, char* sub);
 int SearchFilename(char** arr, unsigned short sizearr, char* name, short urgent);
 
+struct WZmap ReadMap(char* filename);
+char* WriteImage(struct WZmap map, bool CustomPath, char* CustomOutputPath, int picturezoom);
+
+struct WZmap {
+	char* path;
+	char* mapname;
+	
+	char **filenames = NULL;
+	struct zip_t *zip;
+	int totalentries = -1;
+
+	void *ttpcontents = NULL;
+	char ttphead[5] = { '0', '0', '0', '0', '\0'};
+	unsigned int ttypver = -1;
+	unsigned int ttypnum = -1;
+	unsigned short ttyptt[1200];
+
+	void *mapcontents = NULL;
+	char maphead[5] = { '0', '0', '0', '0', '\0'};
+	unsigned int maparrsize = 0;
+	unsigned int mapver = -1;
+	unsigned int maptotalx = -1;
+	unsigned int maptotaly = -1;
+	bool mapwater[90000];
+	bool mapcliff[90000];
+	unsigned short *mapheight;
+	
+	~WZmap() {
+		free(ttpcontents);
+		free(mapcontents);
+		free(mapheight);
+		free(filenames);
+		for(int i=0; i<totalentries; i++)
+			free(filenames[i]);
+		zip_entry_close(zip);
+		zip_close(zip);
+	}
+};
+
 struct PngImage {
 	int w=0, h=0;
 	long totalpixels;
 	char filename[MAX_PATH_LEN];
 	uint8_t* pixels;
-	
 	
 	PngImage(unsigned int nw, unsigned int nh)
 	{
