@@ -12,9 +12,6 @@ char* wzmappath;
 bool IgnoreFree = false;
 bool CustomOutputPathFlag = false;
 char CustomOutputPath[MAX_PATH_LEN];
-bool EnableFilterWater = false;
-bool EnableFilterCliffs = false;
-bool EnableFilterTextrue = false;
 bool picturezoomenabled = false;
 unsigned short picturezoom = 1;
 bool OpenWithFeh=false;
@@ -25,43 +22,43 @@ int ArgParse(int argc, char **argv) {
 	for(int argcounter=1; argcounter<argc; argcounter++) {
 		if(DebugPrintLevel > 2)
 			printf("Scanning arg %d %s\n", argcounter, argv[argcounter]);
-		if(equalstr(argv[argcounter], "-v")) {
+		if(WMT_equalstr(argv[argcounter], "-v")) {
 			printf("Verbose log level 1.\n");
 			log_set_level(LOG_ERROR);
-		} else if(equalstr(argv[argcounter], "-vv")) {
+		} else if(WMT_equalstr(argv[argcounter], "-vv")) {
 			printf("Verbose log level 2!\n");
 			log_set_level(LOG_WARN);
-		} else if(equalstr(argv[argcounter], "-vvv")) {
+		} else if(WMT_equalstr(argv[argcounter], "-vvv")) {
 			printf("Verbose log level 3!!!\n");
 			log_set_level(LOG_INFO);
-		} else if(equalstr(argv[argcounter], "-vvvv")) {
+		} else if(WMT_equalstr(argv[argcounter], "-vvvv")) {
 			log_warn("Verbose log level 4. (╯°□°）╯︵ ┻━┻");
 			log_warn("Warning! Wall of info incomming!");
 			log_set_level(LOG_DEBUG);
-		} else if(equalstr(argv[argcounter], "-v999")) {
+		} else if(WMT_equalstr(argv[argcounter], "-v999")) {
 			printf("You better stop reading logs...\n");
 			log_set_level(LOG_TRACE);
-		} else if(equalstr(argv[argcounter], "--version")) {
+		} else if(WMT_equalstr(argv[argcounter], "--version")) {
 			printf("Version %d\nLog version %s\nUsing miniz.h version 9.1.15\n", WMT_VERSION, LOG_VERSION);
-		} else if(equalstr(argv[argcounter], "--ignore-free")) {
+		} else if(WMT_equalstr(argv[argcounter], "--ignore-free")) {
 			IgnoreFree = true;
-		} else if(equalstr(argv[argcounter], "-feh")) {
+		} else if(WMT_equalstr(argv[argcounter], "-feh")) {
 			OpenWithFeh = true;
-		} else if(equalstr(argv[argcounter], "-b")) {
+		} else if(WMT_equalstr(argv[argcounter], "-b")) {
 			BuildPreview = true;
-		} else if(equalstr(argv[argcounter], "--build")) {
+		} else if(WMT_equalstr(argv[argcounter], "--build")) {
 			BuildPreview = true;
-		} else if(equalstr(argv[argcounter], "-z")) {
+		} else if(WMT_equalstr(argv[argcounter], "-z")) {
 			picturezoomenabled = true;
 			picturezoom = atoi(argv[argcounter+1]);
 			argcounter++;
-		} else if(equalstr(argv[argcounter], "-o")) {
+		} else if(WMT_equalstr(argv[argcounter], "-o")) {
 			CustomOutputPathFlag = true;
 			for(int i=0; i<MAX_PATH_LEN; i++)
 				CustomOutputPath[i] = 0;
 			snprintf(CustomOutputPath, MAX_PATH_LEN, "%s", argv[argcounter+1]);
 			argcounter++;
-		} else if(equalstr(argv[argcounter], "--help")||equalstr(argv[argcounter], "-h")) {
+		} else if(WMT_equalstr(argv[argcounter], "--help")||WMT_equalstr(argv[argcounter], "-h")) {
 			printf("\n	Usage: %s [map-path] [args]\n", argv[0]);
 			printf("	\n");
 			printf("	Available args:\n");
@@ -98,9 +95,10 @@ int main(int argc, char** argv)
 	ArgParse(argc, argv);
 	
 	if(argc >= 1 && BuildPreview) {
-		struct WZmap buildmap = ReadMap(wzmappath);
+		struct WZmap buildmap = WMT_ReadMap(wzmappath);
+		assert(buildmap.valid);
 		char *outname;
-		outname = WriteImage(buildmap, CustomOutputPathFlag, CustomOutputPath, picturezoom);
+		outname = WMT_WriteImage(buildmap, CustomOutputPathFlag, CustomOutputPath, picturezoom);
 		printf("Output: %s\n", outname);
 		if(OpenWithFeh) {
 			if(outname == NULL)
@@ -114,9 +112,6 @@ int main(int argc, char** argv)
 		free(outname);
 		exit(0);
 	}
-	
-	
-	
 	exit(0);
 }
 
