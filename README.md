@@ -12,13 +12,13 @@ Programm for viewing and manipulating Warzone2100 maps.
 6. Making heightmap
 7. Getting tile types (cliff, water)
 8. Writing heightmap with filtes to png file
+9. Reading structures data
 
 # TODO
 
 1. Reading 100% of game.map (zones)
-2. Reading structures data
-3. Adding oil stuff
-4. Render tiles to the top view map preview
+2. Adding oil stuff
+3. Render tiles to the top view map preview
 
 # Can be but no ideas how it should work
 
