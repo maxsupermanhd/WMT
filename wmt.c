@@ -57,9 +57,63 @@ bool WMT_str_match(char* str, char* sub) {
 	return false;
 }
 
+void WMT_PrintObject(WZobject obj) {
+	printf("WZobject dump:\n");
+	printf("Name:           %s\n", obj.name);
+	printf("Id:             %d\n", obj.id);
+	printf("X:              %d\n", obj.x);
+	printf("Y:              %d\n", obj.y);
+	printf("Z:              %d\n", obj.z);
+	printf("Direction:      %d\n", obj.direction);
+	printf("Player:         %d\n", obj.player);
+	if(obj.infire!=0) {
+		printf("In fire:        %d\n", obj.infire);
+		printf("Burn start:     %d\n", obj.burnStart);
+		printf("Burn damage:    %d\n", obj.burnDamage);
+	}
+	if(obj.structPadding!=1)
+		printf("Struct padding: %d\n", obj.structPadding);
+	if(obj.buildPoints!=0)
+		printf("Build points:   %d\n", obj.buildPoints);
+	if(obj.body!=0)
+		printf("Body:           %d\n", obj.body);
+	if(obj.armour!=0)
+		printf("Armour:         %d\n", obj.armour);
+	if(obj.resistance!=0)
+		printf("Resistance:     %d\n", obj.resistance);
+	if(obj.subjectInc!=0)
+		printf("Subject inc.:   %d\n", obj.subjectInc);
+	if(obj.timeStarted!=0)
+		printf("Time started:   %d\n", obj.timeStarted);
+	if(obj.output!=0)
+		printf("Output:         %d\n", obj.output);
+	if(obj.capacity!=0)
+		printf("Capacity:       %d\n", obj.capacity);
+	if(obj.quantity!=0)
+		printf("Quantity:       %d\n", obj.quantity);
+	//printf("visibility [0]: %d\n", obj.visibility[0]);
+	//printf("visibility [1]: %d\n", obj.visibility[1]);
+	//printf("visibility [2]: %d\n", obj.visibility[2]);
+	//printf("visibility [3]: %d\n", obj.visibility[3]);
+	//printf("visibility [4]: %d\n", obj.visibility[4]);
+	//printf("visibility [5]: %d\n", obj.visibility[5]);
+	//printf("visibility [6]: %d\n", obj.visibility[6]);
+	//printf("visibility [7]: %d\n", obj.visibility[7]);
+}
+
+void WMT_PrintObjectShort(WZobject obj) {
+	printf("WZobject   %s\n", obj.name);
+	printf("Id:        %d\n", obj.id);
+	printf("X:         %d\n", obj.x);
+	printf("Y:         %d\n", obj.y);
+	printf("Z:         %d\n", obj.z);
+	//printf("Direction: %d\n", obj.direction);
+	printf("Player:    %d\n", obj.player);
+}
+
 
 int WMT_SearchFilename(char** arr, unsigned short sizearr, char* name, short urgent = 0) {
-	log_trace("Serching filename \"%s\" in array of filenames...", name);
+	//log_trace("Serching filename \"%s\" in array of filenames...", name);
 	int foundindex=-1;
 	for(int index=0; index<sizearr; index++)
 		if(strstr(arr[index], name))
@@ -80,7 +134,7 @@ int WMT_SearchFilename(char** arr, unsigned short sizearr, char* name, short urg
 			break;
 		}
 	} else {
-		log_trace("Serching filename \"%s\" in array of filenames... %d (%s)", name, foundindex, arr[foundindex]);
+		//log_trace("Serching filename \"%s\" in array of filenames... %d (%s)", name, foundindex, arr[foundindex]);
 		return foundindex;
 	}
 }
@@ -118,13 +172,13 @@ bool WMT_ListFiles(WZmap *map) { //pass pointer to struct to make changes
 			success = false;
 		}
 	}
-	log_trace("Listing all shit up (%d) ...", map->totalentries);
+	//log_trace("Listing all shit up (%d) ...", map->totalentries);
 	for(int index=0; index<map->totalentries; index++) {
-		log_trace("Trying index %d", index);
+		//log_trace("Trying index %d", index);
 		int ret = zip_entry_openbyindex(map->zip, index);
 		if(ret>=0) {
 			snprintf(map->filenames[index], 1024, "%s", (char*)zip_entry_name(map->zip));
-			log_trace("%d.\t%s", index, map->filenames[index]);
+			//log_trace("%d.\t%s", index, map->filenames[index]);
 			zip_entry_close(map->zip);
 		}
 		else {
@@ -135,6 +189,20 @@ bool WMT_ListFiles(WZmap *map) { //pass pointer to struct to make changes
 	return success;
 }
 
+bool WMT_ReadFromFile(FILE *fp, size_t s, size_t v, void *var) {
+	size_t r = fread(var, s, v, fp);
+	//log_debug("Fread return %d need %d", r, v);
+	if(r != v) {
+		log_warn("Fread return count (%d) not (%d)!", r, v);
+	}
+	if(ferror(fp)) {
+			log_fatal("Fread read only %ld instead of %lu. Cursor: %ld Readed: %u", r, s, ftell(fp), var);
+			log_fatal("Fread error: %s", strerror(errno));
+			return false;
+	}
+	return true;
+}
+
 bool WMT_ReadTTypesFile(WZmap *map) {
 	bool success = true;
 	int indexttypes = WMT_SearchFilename(map->filenames, map->totalentries, (char*)"ttypes.ttp", 2);
@@ -143,78 +211,41 @@ bool WMT_ReadTTypesFile(WZmap *map) {
 		log_fatal("Opening file by index error! Status %d.", openstatus);
 		success = false;
 	} else {
-		size_t ttpfilesize = zip_entry_size(map->zip);
+		//size_t ttpfilesize = zip_entry_size(map->zip);
 		size_t readlen;
-		ssize_t readed = zip_entry_read(map->zip, &map->ttpcontents, &readlen);
-		log_trace("Reading ttypes.ttp ... (%ld/%ld)", readed, ttpfilesize);
-		FILE* ttpf = fmemopen(map->ttpcontents, readlen, "r");
-		if(ttpf==NULL) {
-			log_fatal("Error opening as file descriptor!");
-			success = false;
+		void *ttpcontents;
+		ssize_t readed = zip_entry_read(map->zip, &ttpcontents, &readlen);
+		if(readed==-1) {
+			log_fatal("Error reading ttypes file!");
 		} else {
-			if(fread(&map->ttphead, sizeof(char), 4, ttpf) != sizeof(char)*4) {
-				log_fatal("Error reading ttypes header! Status %d.", ferror(ttpf));
+			FILE* ttpf = fmemopen(ttpcontents, readlen, "r");
+			if(ttpf==NULL) {
+				log_fatal("Error opening as file descriptor!");
 				success = false;
 			} else {
-				if(map->ttphead[0] != 't' ||
-				   map->ttphead[1] != 't' ||
-				   map->ttphead[2] != 'y' ||
-				   map->ttphead[3] != 'p')
+				char ttphead[5] = { '0', '0', '0', '0', '\0'};
+				if(!WMT_ReadFromFile(ttpf, sizeof(char), 4, &ttphead))
+					log_error("Failed to read ttypes header!");
+				if(ttphead[0] != 't' ||
+				   ttphead[1] != 't' ||
+				   ttphead[2] != 'y' ||
+				   ttphead[3] != 'p')
 					log_warn("Ttypes file header not \'ttyp\'!");
-				ssize_t ttypverreadret = fread(&map->ttypver, sizeof(unsigned int), 1, ttpf);
-				if(ttypverreadret != 1) {
-					log_trace("Fread return count (%d) not (%d)!", ttypverreadret, 1);
-					if(ferror(ttpf)) {
-						if(ftell(ttpf) == 8) {
-							log_error("Return status of reading version bad!");
-						} else {
-							log_fatal("Fread read only %ld instead of %lu. Cursor not in needed position! (%ld) Readed: %u", ttypverreadret, sizeof(unsigned int), ftell(ttpf), map->ttypver);
-							success = false;
-						}
-					} else {
-						if(ftell(ttpf) != 8)
-							log_error("Cursor not in needed position!");
-					}
-				}
-				ssize_t ttypnumreadret = fread(&map->ttypnum, sizeof(unsigned int), 1, ttpf);
-				if(ttypnumreadret != 1) {
-					log_trace("Fread return count (%d) not (%d)!", ttypnumreadret, 1);
-					if(ferror(ttpf)) {
-						if(ftell(ttpf) == 12) {
-							log_warn("Return status of reading num bad!");
-						} else {
-							log_fatal("Fread read only %ld instead of %lu. Cursor not in needed position! (%ld) Readed: %u", ttypnumreadret, sizeof(unsigned int), ftell(ttpf), map->ttypnum);
-							success = false;
-						}
-					} else {
-						if(ftell(ttpf) != 12)
-							log_error("Cursor not in needed position!");
-					}
-				}
-				ssize_t ttypttreadret = fread(&map->ttyptt, sizeof(unsigned short), map->ttypnum, ttpf);
-				if(ttypttreadret != map->ttypnum) {
-					log_warn("Fread return count (%d) not (%d)!", ttypttreadret, 1);
-					if(ferror(ttpf)) {
-						if(ftell(ttpf) == 4*map->ttypnum+12) {
-							log_warn("Return status of reading num bad!");
-						} else {
-							log_fatal("Fread read only %ld instead of %lu. Cursor not in needed position! (%ld) Readed: %u", ttypttreadret, sizeof(unsigned int), ftell(ttpf), map->ttypnum);
-							success = false;
-						}
-					} else {
-						if(ftell(ttpf) != 4*map->ttypnum+12)
-							log_error("Cursor not in needed position!");
-					}
-				}
-				printf("\nResults of readyng ttypes.ttp:\n");
-				printf("Header: \"%s\"\n", map->ttphead);
+				if(!WMT_ReadFromFile(ttpf, sizeof(unsigned int), 1, &map->ttypver))
+					log_error("Failed to read ttypes version!");
+				if(!WMT_ReadFromFile(ttpf, sizeof(unsigned int), 1, &map->ttypnum))
+					log_error("Failed to read number of terrain types!");
+				if(!WMT_ReadFromFile(ttpf, sizeof(unsigned short), map->ttypnum, &map->ttyptt))
+					log_error("Failed to read terrain types!");
+				fclose(ttpf);
+				printf("Results of readyng ttypes.ttp:\n");
+				printf("Header: \"%s\"\n", ttphead);
 				printf("Version: %d\n", map->ttypver);
-				printf("Number:  %d\n", map->ttypnum);	
+				printf("Types:  %d\n", map->ttypnum);		
 			}
+			free(ttpcontents);
+			ttpcontents = NULL;
 		}
-		fclose(ttpf);
-		free(map->ttpcontents);
-		map->ttpcontents = NULL;
 		zip_entry_close(map->zip);
 	}
 	return success;
@@ -222,6 +253,7 @@ bool WMT_ReadTTypesFile(WZmap *map) {
 
 bool WMT_ReadGameMapFile(WZmap *map) {
 	bool success = true;
+	void *mapcontents;
 	int indexgamemap = WMT_SearchFilename(map->filenames, map->totalentries, (char*)"game.map", 1);
 	int openstatus;
 	if(indexgamemap==-1) {
@@ -250,97 +282,180 @@ bool WMT_ReadGameMapFile(WZmap *map) {
 			log_fatal("Error opening file from memory!");
 			success = false;
 		} else {
-			if(fread(&map->maphead, sizeof(char), 4, mapf) != sizeof(char)*4) {
-				log_fatal("Failed to read map header!");
-				success = false;
-			} else {
-				if(map->maphead[0] != 'm' ||
-				   map->maphead[1] != 'a' ||
-				   map->maphead[2] != 'p')
-					log_warn("Map file header not \'map\'!");
-				ssize_t mapverreadret = fread(&map->mapver, sizeof(unsigned int), 1, mapf);
-				if(mapverreadret != 1) {
-					log_trace("Fread return count (%d) not (%d)!", mapverreadret, 1);
-					if(ferror(mapf)) {
-						if(ftell(mapf) == 8) {
-							log_warn("Return status of reading version bad!");
-						} else {
-							log_fatal("Fread read only %ld instead of %lu. Cursor not in needed position! (%ld) Readed: %u", mapverreadret, sizeof(unsigned int), ftell(mapf), map->mapver);
-							success = false;
-						}
-					} else {
-						if(ftell(mapf) != 8)
-							log_error("Cursor not in needed position!");
-					}
+			char maphead[5] = { '0', '0', '0', '0', '\0'};
+			if(!WMT_ReadFromFile(mapf, sizeof(char), 4, &maphead))
+				log_error("Failed to read ttypes header!");
+			if(maphead[0] != 'm' ||
+			   maphead[1] != 'a' ||
+			   maphead[2] != 'p')
+				log_warn("Map file header not \'map\'!");
+			if(!WMT_ReadFromFile(mapf, sizeof(unsigned int), 1, &map->mapver))
+				log_error("Failed to read map file version!");
+			if(!WMT_ReadFromFile(mapf, sizeof(unsigned int), 1, &map->maptotalx))
+				log_error("Failed to read map bounds (x)");
+			if(!WMT_ReadFromFile(mapf, sizeof(unsigned int), 1, &map->maptotaly))
+				log_error("Failed to read map bounds (y)");
+			printf("\nResults of reading game.map\n");
+			printf("Version: %d\n", map->mapver);
+			printf("Width:   %d\n", map->maptotaly);
+			printf("Height:  %d\n", map->maptotalx);
+			
+			int maparraysize = map->maptotaly*map->maptotalx;
+			map->mapheight = (unsigned short*) calloc(maparraysize, sizeof(unsigned short));
+			if(map->mapheight==NULL) {
+				log_fatal("Height array allocation failed!");
+			}
+			unsigned short maptileinfo = 0;
+			ssize_t mapreadret = -1;
+			short maptiletexture = -1;
+			WMT_TerrainTypes maptileterrain = ttsand;
+			for(int counter=0; counter<maparraysize; counter++)
+			{
+				//nowmapy = counter/map->maptotaly;
+				//nowmapx = counter-(nowmapy*map->maptotalx);
+				mapreadret = fread(&maptileinfo, 2, 1, mapf);
+				if(mapreadret != 1)
+					log_error("Fread scanned %d elements instead of %d (tileinfo)", mapreadret, 1);
+				maptiletexture = (maptileinfo & WMT_maptileoffset);
+				maptileterrain = (WMT_TerrainTypes)map->ttyptt[maptiletexture];
+				if(maptileterrain == ttwater) {
+					map->mapwater[counter]=true;
 				}
-				ssize_t mapwreadret = fread(&map->maptotalx, sizeof(unsigned int), 1, mapf);
-				if(mapwreadret != 1) {
-					log_trace("Fread return count (%d) not (%d)!", mapverreadret, 1);
-					if(ferror(mapf)) {
-						if(ftell(mapf) == 12) {
-							log_warn("Warning return status of reading width bad!");
-						} else {
-							log_fatal("ERROR!\nFread read only %ld instead of %lu. Cursor not in needed position! (%ld) Readed: %u", mapwreadret, sizeof(unsigned int), ftell(mapf), map->maptotalx);
-							success = false;
-						}
-					} else {
-						if(ftell(mapf) != 12)
-							log_error("Cursor not in needed position!");
-					}
+				if(maptileterrain == ttclifface) {
+					map->mapcliff[counter]=true;
 				}
-				ssize_t maphreadret = fread(&map->maptotaly, sizeof(unsigned int), 1, mapf);
-				if(maphreadret != 1) {
-					log_trace("Fread return count (%d) not (%d)!", mapverreadret, 1);
-					if(ferror(mapf)) {
-						if(ftell(mapf) == 16) {
-							log_warn("Return status of reading height bad!");
-						}
-						else {
-							log_fatal("Fread read only %ld instead of %lu. Cursor not in needed position! (%ld) Readed: %u", maphreadret, sizeof(unsigned int), ftell(mapf), map->maptotaly);
-							success = false;
-						}
-					} else {
-						if(ftell(mapf) != 16)
-							log_error("Cursor not in needed position!");
-					}
-				}
-				printf("\nResults of reading game.map\n");
-				printf("Version: %d\n", map->mapver);
-				printf("Width:   %d\n", map->maptotaly);
-				printf("Height:  %d\n", map->maptotalx);
-				
-				int maparraysize = map->maptotaly*map->maptotalx;
-				map->mapheight = (unsigned short*) calloc(maparraysize, sizeof(unsigned short));
-				if(map->mapheight==NULL) {
-					log_fatal("Height array allocation failed!");
-				}
-				unsigned short maptileinfo = 0;
-				ssize_t mapreadret = -1;
-				short maptiletexture = -1;
-				WMT_TerrainTypes maptileterrain = ttsand;
-				for(int counter=0; counter<maparraysize; counter++)
-				{
-					//nowmapy = counter/map->maptotaly;
-					//nowmapx = counter-(nowmapy*map->maptotalx);
-					mapreadret = fread(&maptileinfo, 2, 1, mapf);
-					if(mapreadret != 1)
-						log_error("Fread scanned %d elements instead of %d (tileinfo)", mapreadret, 1);
-					maptiletexture = (maptileinfo & WMT_maptileoffset);
-					maptileterrain = (WMT_TerrainTypes)map->ttyptt[maptiletexture];
-					if(maptileterrain == ttwater) {
-						map->mapwater[counter]=true;
-					}
-					if(maptileterrain == ttclifface) {
-						map->mapcliff[counter]=true;
-					}
-					mapreadret = fread(&map->mapheight[counter], 1, 1, mapf);
-					if(mapreadret != 1)
-						log_error("Fread scanned %d elements instead of %d (height)", mapreadret, 1);
-				}
+				mapreadret = fread(&map->mapheight[counter], 1, 1, mapf);
+				if(mapreadret != 1)
+					log_error("Fread scanned %d elements instead of %d (height)", mapreadret, 1);
 			}
 		}
-		free(map->mapcontents);
-		map->mapcontents = NULL;
+		free(mapcontents);
+		mapcontents = NULL;
+		zip_entry_close(map->zip);
+	}
+	return success;
+}
+
+bool WMT_ReadStructs(WZmap *map) {
+	bool success = true;
+	void *structcontents;
+	int indexstructs = WMT_SearchFilename(map->filenames, map->totalentries, (char*)"struct.bjo");
+	if(indexstructs == -1) {
+		log_fatal("Failed to find struct.bjo!");
+		return false;
+	} 
+	int openstatus = zip_entry_openbyindex(map->zip, indexstructs);
+	if(openstatus<0) {
+		log_fatal("Failed to open struct.bjo!");
+		success = false;
+	} else {
+		void *structcontents;
+		size_t readlen;
+		ssize_t readed = zip_entry_read(map->zip, &structcontents, &readlen);
+		if(readed == -1) {
+			log_fatal("Failed to read struct.bjo!");
+			success = false;
+		} else {
+			FILE* structf = fmemopen(structcontents, readlen, "r");
+			if(structf==NULL) {
+				log_fatal("Error opening struct.bjo from memory!");
+				success = false;
+			} else {
+				char structshead[5] = { '0', '0', '0', '0', '\0'};
+				if(!WMT_ReadFromFile(structf, sizeof(char), 4, &structshead))
+					log_error("Failed to read struct header!");
+				if(structshead[0] != 's' ||
+				   structshead[1] != 't' ||
+				   structshead[2] != 'r' ||
+				   structshead[3] != 'u')
+					log_warn("Struct file header not \'stru\'! (%s)", structshead);
+				if(!WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structVersion))
+					log_error("Failed to read struct file version!");
+				if(!WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->numStructures))
+					log_error("Failed to read structure count!");
+				
+				printf("Struct version: %d\n", map->structVersion);
+				printf("Structs count:  %d\n", map->numStructures);
+				
+				
+				map->structs = (WZobject*)malloc(sizeof(WZobject)*map->numStructures);
+				if(map->structs == NULL)
+					log_fatal("Failed to allocate memory for structures!");
+				
+				int nameLength = 60;
+				if(map->structVersion <= 19)
+					nameLength = 40;
+				
+				
+				for(unsigned int structnum = 0; structnum<map->numStructures; structnum++) {
+					WMT_ReadFromFile(structf, sizeof(char), nameLength, &map->structs[structnum].name);
+					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].id);
+					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].x);
+					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].y);
+					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].z);
+					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].direction);
+					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].player);
+					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].infire);
+					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].burnStart);
+					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].burnDamage);
+					WMT_ReadFromFile(structf, sizeof(uint8_t), 1, &map->structs[structnum].structPadding);
+					WMT_ReadFromFile(structf, sizeof(uint8_t), 1, &map->structs[structnum].structPadding1);
+					WMT_ReadFromFile(structf, sizeof(uint8_t), 1, &map->structs[structnum].structPadding2);
+					WMT_ReadFromFile(structf, sizeof(uint8_t), 1, &map->structs[structnum].structPadding3);
+					WMT_ReadFromFile(structf, sizeof(int32_t), 1, &map->structs[structnum].buildPoints);
+					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].body);
+					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].armour);
+					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].resistance);
+					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].dummy);
+					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].subjectInc);
+					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].timeStarted);
+					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].output);
+					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].capacity);
+					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].quantity);
+					if(map->structVersion >= 12) {
+						WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].factoryInc);
+						WMT_ReadFromFile(structf, sizeof(uint8_t), 1, &map->structs[structnum].loopsPerformed);
+						WMT_ReadFromFile(structf, sizeof(uint8_t), 1, &map->structs[structnum].structPadding4);
+						WMT_ReadFromFile(structf, sizeof(uint8_t), 1, &map->structs[structnum].structPadding5);
+						WMT_ReadFromFile(structf, sizeof(uint8_t), 1, &map->structs[structnum].structPadding6);
+						WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].powerAccrued);
+						WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].dummy2);
+						WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].droidTimeStarted);
+						WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].timeToBuild);
+						WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].timeStartHold);
+					}
+					if(map->structVersion >= 14) {
+						size_t freadret = fread(&map->structs[structnum].visibility, 8, 1, structf);
+						if(freadret != 1)
+							log_error("Error reading visibility! Code %d.", freadret);
+					}
+					if(map->structVersion >= 15) {
+						size_t freadret = fread(&map->structs[structnum].researchName, sizeof(char), nameLength, structf);
+						if(freadret != 1)
+							log_error("Error reading research name! Code %d.", freadret);
+					}
+					if(map->structVersion >= 17) {
+						int16_t dummy;
+						WMT_ReadFromFile(structf, sizeof(int16_t), 1, &dummy);
+						(void)dummy;
+					}
+					if(map->structVersion >= 15) {
+						int16_t dummy;
+						WMT_ReadFromFile(structf, sizeof(int16_t), 1, &dummy);
+						(void)dummy;
+					}
+					if(map->structVersion >= 21) {
+						uint32_t dummy;
+						WMT_ReadFromFile(structf, sizeof(int16_t), 1, &dummy);
+						(void)dummy;
+					}
+					WMT_PrintObjectShort(map->structs[structnum]);
+				}
+				fclose(structf);
+			}
+			free(structcontents);
+			structcontents = NULL;
+		}
 		zip_entry_close(map->zip);
 	}
 	return success;
@@ -372,20 +487,11 @@ WZmap WMT_ReadMap(char* filename) {
 		map.valid=false;
 		return map;
 	}
-	
-	
-	log_trace("Checking that struct.json does not exist...");                                  //FIXME parse json
-	int indexjsonstructs = WMT_SearchFilename(map.filenames, map.totalentries, (char*)"struct.json", 0);  
-	if(indexjsonstructs != -1) {
-		log_warn("struct.json exists!!! (%d)", indexjsonstructs);
-		log_warn("Sorry, but this tool still too dumb to read structs...");
+	if(!WMT_ReadStructs(&map)) {
+		log_fatal("Error reading struct file!");
+		map.valid=false;
+		return map;
 	}
-	int indexstructs = WMT_SearchFilename(map.filenames, map.totalentries, (char*)"struct.ini", 2);       //FIXME parse INI
-	if(indexstructs != -1) {                                                                  //FIXME parse old maps
-		log_warn("struct.ini exists!!! (%d)", indexstructs);
-		log_warn("Sorry, but this tool still too dumb to read structs...");
-	}
-	
 	log_info("Map reading done!");
 	return map;
 }
@@ -412,6 +518,20 @@ char* WMT_WriteImage(struct WZmap map, bool CustomPath, char* CustomOutputPath, 
 					} else {
 						OutputImg.PutPixel(zoomcounterx, zoomcountery, map.mapheight[nowposinarray], map.mapheight[nowposinarray], map.mapheight[nowposinarray]);
 					}
+				}
+			}
+		}
+	}
+	for(uint32_t i = 0; i<map.numStructures; i++)
+	{
+		unsigned short strx = map.structs[i].x/128;
+		unsigned short stry = map.structs[i].y/128;
+		
+		if(strcmp(map.structs[i].name, "A0ResourceExtractor") == 0) {
+			log_debug("Found extractor at %d %d", strx, stry);
+			for(unsigned short zoomcounterx=strx*picturezoom; zoomcounterx<strx*picturezoom+picturezoom; zoomcounterx++) {
+				for(unsigned short zoomcountery=stry*picturezoom; zoomcountery<stry*picturezoom+picturezoom; zoomcountery++) {
+					OutputImg.PutPixel(zoomcounterx, zoomcountery, 255, 255, 0);
 				}
 			}
 		}

@@ -20,6 +20,7 @@
 #include <stdarg.h>
 #include <fstream>
 #include <iostream>
+#include <errno.h>
 
 #include "zip.h"
 #include "log.h"
@@ -27,6 +28,20 @@
 #include "jfes.h"
 
 #define MAX_PATH_LEN 2048
+
+/*#ifndef typename(x)
+#define typename(x) _Generic((x),                                                 \
+        _Bool: "_Bool",                  unsigned char: "unsigned char",          \
+         char: "char",                     signed char: "signed char",            \
+    short int: "short int",         unsigned short int: "unsigned short int",     \
+          int: "int",                     unsigned int: "unsigned int",           \
+     long int: "long int",           unsigned long int: "unsigned long int",      \
+long long int: "long long int", unsigned long long int: "unsigned long long int", \
+        float: "float",                         double: "double",                 \
+  long double: "long double",                   char *: "pointer to char",        \
+       void *: "pointer to void",                int *: "pointer to int",         \
+      default: "other")
+#endif */
 
 enum WMT_TerrainTypes { ttsand, ttsandybrush, ttbakedearth, ttgreenmud, ttredbrush, ttpinkrock, ttroad, ttwater, ttclifface, ttrubble, ttsheetice, ttslush, ttmax};
 extern const char* WMT_TerrainTypesStrings[];
@@ -40,23 +55,63 @@ int WMT_SearchFilename(char** arr, unsigned short sizearr, char* name, short urg
 struct WZmap WMT_ReadMap(char* filename);
 char* WMT_WriteImage(struct WZmap map, bool CustomPath, char* CustomOutputPath, int picturezoom);
 
+struct WZobject {
+	char name[128];
+	uint32_t id;
+	uint32_t x;
+	uint32_t y;
+	uint32_t z;
+	uint32_t direction;
+	uint32_t player;
+	bool infire;
+	uint32_t burnStart;
+	uint32_t burnDamage;
+	uint8_t structPadding;
+	uint8_t structPadding1;
+	uint8_t structPadding2;
+	uint8_t structPadding3;
+	int32_t buildPoints;
+	uint32_t body;
+	uint32_t armour;
+	uint32_t resistance;
+	uint32_t dummy;
+	uint32_t subjectInc;
+	uint32_t timeStarted;
+	uint32_t output;
+	uint32_t capacity;
+	uint32_t quantity;
+	
+	uint32_t factoryInc;
+	uint8_t loopsPerformed;
+	uint8_t structPadding4;
+	uint8_t structPadding5;
+	uint8_t structPadding6;
+	uint32_t powerAccrued;
+	uint32_t dummy2;
+	uint32_t droidTimeStarted;
+	uint32_t timeToBuild;
+	uint32_t timeStartHold;
+	
+	uint8_t visibility[8];
+	
+	char researchName[60];
+	//int type;
+	//char script[32];
+};
+
 struct WZmap {
 	char* path;
 	char* mapname;
 	bool valid = true;
 	
 	char **filenames = NULL;
-	struct zip_t *zip;
+	zip_t *zip;
 	int totalentries = -1;
 
-	void *ttpcontents = NULL;
-	char ttphead[5] = { '0', '0', '0', '0', '\0'};
 	unsigned int ttypver = -1;
 	unsigned int ttypnum = -1;
 	unsigned short ttyptt[1200];
 
-	void *mapcontents = NULL;
-	char maphead[5] = { '0', '0', '0', '0', '\0'};
 	unsigned int maparrsize = 0;
 	unsigned int mapver = -1;
 	unsigned int maptotalx = -1;
@@ -65,9 +120,11 @@ struct WZmap {
 	bool mapcliff[90000];
 	unsigned short *mapheight;
 	
+	uint32_t structVersion;
+	uint32_t numStructures;
+	WZobject *structs;
+	
 	~WZmap() {
-		free(ttpcontents);
-		free(mapcontents);
 		free(mapheight);
 		free(filenames);
 		for(int i=0; i<totalentries; i++)
