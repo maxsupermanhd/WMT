@@ -55,6 +55,8 @@ int WMT_SearchFilename(char** arr, unsigned short sizearr, char* name, short urg
 struct WZmap WMT_ReadMap(char* filename);
 char* WMT_WriteImage(struct WZmap map, bool CustomPath, char* CustomOutputPath, int picturezoom);
 
+enum WZtileset { tileset_arizona, tileset_urban, tileset_rockies };
+
 struct WZobject {
 	char name[128];
 	uint32_t id;
@@ -124,6 +126,7 @@ struct WZmap {
 	unsigned int ttypver = -1;
 	unsigned int ttypnum = -1;
 	unsigned short ttyptt[1200];
+	WZtileset tileset = tileset_arizona;
 
 	unsigned int maparrsize = 0;
 	unsigned int mapver = -1;
@@ -177,7 +180,7 @@ struct PngImage {
 			log_error("Putting pixel out of bound! (putting to %d %d)", x, y);
 			return false;
 		}
-		//log_debug("Putting pixel to %d %d in %d", x, y, y*w*3+x*3);
+		log_debug("Putting pixel to %d %d in %d", x, y, y*w*3+x*3);
 		pixels[y*w*3+x*3+0] = r;
 		pixels[y*w*3+x*3+1] = g;
 		pixels[y*w*3+x*3+2] = b;

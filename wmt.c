@@ -197,6 +197,23 @@ bool WMT_ListFiles(WZmap *map) { //pass pointer to struct to make changes
 	return success;
 }
 
+char* WMT_PrintTilesetName(WZtileset t) {
+	switch(t) {
+	case tileset_arizona:
+	return (char*)"Arizona";
+	break;
+	case tileset_urban:
+	return (char*)"Urban";
+	break;
+	case tileset_rockies:
+	return (char*)"Rockies";
+	break;
+	default:
+	return (char*)"Unknown";
+	break;
+	}
+}
+
 bool WMT_ReadFromFile(FILE *fp, size_t s, size_t v, void *var) {
 	size_t r = fread(var, s, v, fp);
 	//log_debug("Fread return %d need %d", r, v);
@@ -245,6 +262,21 @@ bool WMT_ReadTTypesFile(WZmap *map) {
 					log_error("Failed to read number of terrain types!");
 				if(!WMT_ReadFromFile(ttpf, sizeof(unsigned short), map->ttypnum, &map->ttyptt))
 					log_error("Failed to read terrain types!");
+				
+				uint8_t TileSetProbe[3];
+				TileSetProbe[0] = (uint8_t)map->ttyptt[0];
+				TileSetProbe[1] = (uint8_t)map->ttyptt[1];
+				TileSetProbe[2] = (uint8_t)map->ttyptt[2];
+				
+				if (TileSetProbe[0] == 1 && TileSetProbe[1] == 0 && TileSetProbe[2] == 2)
+					map->tileset = tileset_arizona;
+				else if (TileSetProbe[0] == 2 && TileSetProbe[1] == 2 && TileSetProbe[2] == 2)
+					map->tileset = tileset_urban;
+				else if (TileSetProbe[0] == 0 && TileSetProbe[1] == 0 && TileSetProbe[2] == 2)
+					map->tileset = tileset_rockies;
+				
+				log_info("Tileset: %s", WMT_PrintTilesetName(map->tileset));
+				
 				fclose(ttpf);
 				//printf("Results of readyng ttypes.ttp:\n");
 				//printf("Header: \"%s\"\n", ttphead);
@@ -576,6 +608,15 @@ WZmap WMT_ReadMap(char* filename) {
 	return map;
 }
 
+void _WMT_PutZoomPixel(PngImage *img, int zoom, unsigned short x, unsigned short y, uint8_t r, uint8_t g, uint8_t b) {
+	for(unsigned short zx = x*zoom; zx<x*zoom+zoom; zx++) {
+		for(unsigned short zy = y*zoom; zy<y*zoom+zoom; zy++) {
+			log_trace("Putting pixel to %d %d", zx, zy);
+			img->PutPixel(zx, zy, r, g, b);
+		}
+	}
+}
+
 char* WMT_WriteImage(struct WZmap map, bool CustomPath, char* CustomOutputPath, int picturezoom) {
 	log_info("Drawing preview...");
 	char *pngfilename = (char*)malloc(sizeof(char)*MAX_PATH_LEN);
@@ -587,18 +628,32 @@ char* WMT_WriteImage(struct WZmap map, bool CustomPath, char* CustomOutputPath, 
 	PngImage OutputImg((unsigned int)map.maptotalx*picturezoom, (unsigned int)map.maptotaly*picturezoom);
 	for(unsigned short counterx=0; counterx<map.maptotalx; counterx++) {
 		for(unsigned short countery=0; countery<map.maptotaly; countery++) {
-			for(unsigned short zoomcounterx=counterx*picturezoom; zoomcounterx<counterx*picturezoom+picturezoom; zoomcounterx++) {
-				for(unsigned short zoomcountery=countery*picturezoom; zoomcountery<countery*picturezoom+picturezoom; zoomcountery++) {
-					int nowposinarray = countery*map.maptotalx+counterx;
-					if(map.mapwater[nowposinarray]) {
-						OutputImg.PutPixel(zoomcounterx, zoomcountery, map.mapheight[nowposinarray]/4, map.mapheight[nowposinarray]/4, map.mapheight[nowposinarray]);
-					}
-					else if(map.mapcliff[nowposinarray]) {
-						OutputImg.PutPixel(zoomcounterx, zoomcountery, map.mapheight[nowposinarray], map.mapheight[nowposinarray]/4, map.mapheight[nowposinarray]/4);   //FIXME not the best way
-					} else {
-						OutputImg.PutPixel(zoomcounterx, zoomcountery, map.mapheight[nowposinarray], map.mapheight[nowposinarray], map.mapheight[nowposinarray]);
-					}
-				}
+			int nowposinarray = countery*map.maptotalx+counterx;
+			if(map.mapwater[nowposinarray]) {
+				_WMT_PutZoomPixel(&OutputImg, 
+								  picturezoom,
+								  counterx, 
+								  countery, 
+								  map.mapheight[nowposinarray]/4, 
+								  map.mapheight[nowposinarray]/4, 
+								  map.mapheight[nowposinarray]);
+			}
+			else if(map.mapcliff[nowposinarray]) {
+				_WMT_PutZoomPixel(&OutputImg, 
+								  picturezoom,
+								  counterx, 
+								  countery, 
+								  map.mapheight[nowposinarray], 
+								  map.mapheight[nowposinarray]/4, 
+								  map.mapheight[nowposinarray]/4);
+			} else {
+				_WMT_PutZoomPixel(&OutputImg, 
+								  picturezoom,
+								  counterx, 
+								  countery, 
+								  map.mapheight[nowposinarray], 
+								  map.mapheight[nowposinarray], 
+								  map.mapheight[nowposinarray]);
 			}
 		}
 	}
@@ -606,14 +661,56 @@ char* WMT_WriteImage(struct WZmap map, bool CustomPath, char* CustomOutputPath, 
 		unsigned short strx = map.structs[i].x/128;
 		unsigned short stry = map.structs[i].y/128;
 		
+		//
+		//  [+0] [+1] [+2]
+		//  [+0] [+0] [+0]
+		//
+		//  [+0] [+1] [+2]
+		//  [+1] [+1] [+1]
+		//
+		//  [+0] [+1] [+2]
+		//  [+2] [+2] [+2]
+		//
+		
 		if(strcmp(map.structs[i].name, "A0ResourceExtractor") == 0) {
 			log_debug("Found extractor at %d %d", strx, stry);
-			for(unsigned short zoomcounterx=strx*picturezoom; zoomcounterx<strx*picturezoom+picturezoom; zoomcounterx++) {
-				for(unsigned short zoomcountery=stry*picturezoom; zoomcountery<stry*picturezoom+picturezoom; zoomcountery++) {
-					OutputImg.PutPixel(zoomcounterx, zoomcountery, 255, 255, 0);
-				}
-			}
+			_WMT_PutZoomPixel(&OutputImg, picturezoom, strx, stry, 255, 255, 0);
 		}
+		if(strcmp(map.structs[i].name, "A0CyborgFactory") == 0) {
+			log_debug("Found cyborg at %d %d", strx, stry);
+			_WMT_PutZoomPixel(&OutputImg, picturezoom, strx, stry, 255, 255, 0);
+			_WMT_PutZoomPixel(&OutputImg, picturezoom, strx, stry+1, 255, 255, 0);
+		}
+		if(strcmp(map.structs[i].name, "A0ResearchFacility") == 0 ||
+		   strcmp(map.structs[i].name, "A0CommandCentre") == 0 ||
+		   strcmp(map.structs[i].name, "A0PowerGenerator") == 0 ||
+		   strcmp(map.structs[i].name, "A0Sat-linkCentre") == 0 ||
+		   strcmp(map.structs[i].name, "A0LasSatCommand") == 0 ||
+		   strcmp(map.structs[i].name, "X-Super-Cannon") == 0 ||
+		   strcmp(map.structs[i].name, "X-Super-MassDriver") == 0 ||
+		   strcmp(map.structs[i].name, "X-Super-Missile") == 0 ||
+		   strcmp(map.structs[i].name, "X-Super-Rocket") == 0 ||
+		   strcmp(map.structs[i].name, "A0ComDroidControl") == 0) {
+			log_debug("Found 2x2 object at %d %d", strx, stry);
+			_WMT_PutZoomPixel(&OutputImg, picturezoom, strx, stry, 0, 255, 0);
+			_WMT_PutZoomPixel(&OutputImg, picturezoom, strx+1, stry, 0, 255, 0);
+			_WMT_PutZoomPixel(&OutputImg, picturezoom, strx, stry+1, 0, 255, 0);
+			_WMT_PutZoomPixel(&OutputImg, picturezoom, strx+1, stry+1, 0, 255, 0);
+		}
+		if(strcmp(map.structs[i].name, "A0LightFactory") == 0 ||
+		   strcmp(map.structs[i].name, "A0VTolFactory1") == 0) {
+			log_debug("Found factory at %d %d", strx, stry);
+			_WMT_PutZoomPixel(&OutputImg, picturezoom, strx,   stry,   0, 255, 0);
+			_WMT_PutZoomPixel(&OutputImg, picturezoom, strx+1, stry,   0, 255, 0);
+			_WMT_PutZoomPixel(&OutputImg, picturezoom, strx+2, stry,   0, 255, 0);
+			_WMT_PutZoomPixel(&OutputImg, picturezoom, strx  , stry+1, 0, 255, 0);
+			_WMT_PutZoomPixel(&OutputImg, picturezoom, strx+1, stry+1, 0, 255, 0);
+			_WMT_PutZoomPixel(&OutputImg, picturezoom, strx+2, stry+1, 0, 255, 0);
+			_WMT_PutZoomPixel(&OutputImg, picturezoom, strx  , stry+2, 0, 255, 0);
+			_WMT_PutZoomPixel(&OutputImg, picturezoom, strx+1, stry+2, 0, 255, 0);
+			_WMT_PutZoomPixel(&OutputImg, picturezoom, strx+2, stry+2, 0, 255, 0);
+		}
+		
 	}
 	//log_debug("%d", map.featuresCount);
 	for(uint32_t i = 0; i<map.featuresCount; i++) {
@@ -621,11 +718,7 @@ char* WMT_WriteImage(struct WZmap map, bool CustomPath, char* CustomOutputPath, 
 		unsigned short featy = map.features[i].y/128;
 		if(strcmp(map.features[i].name, "OilResource") == 0) {
 			log_debug("Found resource at %d %d", featx, featy);
-			for(unsigned short zoomcounterx=featx*picturezoom; zoomcounterx<featx*picturezoom+picturezoom; zoomcounterx++) {
-				for(unsigned short zoomcountery=featy*picturezoom; zoomcountery<featy*picturezoom+picturezoom; zoomcountery++) {
-					OutputImg.PutPixel(zoomcounterx, zoomcountery, 255, 255, 0);
-				}
-			}
+			_WMT_PutZoomPixel(&OutputImg, picturezoom, featx, featy, 255, 255, 0);
 		}
 	}
 	OutputImg.WriteImage(pngfilename);
