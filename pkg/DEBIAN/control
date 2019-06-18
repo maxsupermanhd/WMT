@@ -1,0 +1,6 @@
+Package: WMT
+Version: 1.0-1
+Section: utils
+Architecture: all
+Maintainer: Maxim Zhuchkov <q3.max.2011@ya.ry>
+Description: Warzone map tool

@@ -246,10 +246,10 @@ bool WMT_ReadTTypesFile(WZmap *map) {
 				if(!WMT_ReadFromFile(ttpf, sizeof(unsigned short), map->ttypnum, &map->ttyptt))
 					log_error("Failed to read terrain types!");
 				fclose(ttpf);
-				printf("Results of readyng ttypes.ttp:\n");
-				printf("Header: \"%s\"\n", ttphead);
-				printf("Version: %d\n", map->ttypver);
-				printf("Types:  %d\n", map->ttypnum);		
+				//printf("Results of readyng ttypes.ttp:\n");
+				//printf("Header: \"%s\"\n", ttphead);
+				//printf("Version: %d\n", map->ttypver);
+				//printf("Types:  %d\n", map->ttypnum);		
 			}
 			free(ttpcontents);
 			ttpcontents = NULL;
@@ -303,8 +303,8 @@ bool WMT_ReadGameMapFile(WZmap *map) {
 				log_error("Failed to read map bounds (x)");
 			if(!WMT_ReadFromFile(mapf, sizeof(unsigned int), 1, &map->maptotaly))
 				log_error("Failed to read map bounds (y)");
-			printf("\nResults of reading game.map\n");
-			printf("Version: %d\n", map->mapver);
+			//printf("\nResults of reading game.map\n");
+			//printf("Version: %d\n", map->mapver);
 			printf("Width:   %d\n", map->maptotaly);
 			printf("Height:  %d\n", map->maptotalx);
 			
@@ -457,7 +457,7 @@ bool WMT_ReadStructs(WZmap *map) {
 						WMT_ReadFromFile(structf, sizeof(int16_t), 1, &dummy);
 						(void)dummy;
 					}
-					WMT_PrintObjectShort(map->structs[structnum]);
+					//WMT_PrintObjectShort(map->structs[structnum]);
 				}
 				fclose(structf);
 			}
@@ -492,11 +492,11 @@ bool WMT_ReadFeaturesFile(WZmap *map) {
 				char feathead[5] = { '0', '0', '0', '0', '\0'};
 				if(!WMT_ReadFromFile(featf, sizeof(char), 4, &feathead))
 					log_error("Failed to read features file header!");
-				if(feathead[0] != 't' ||
-				   feathead[1] != 't' ||
-				   feathead[2] != 'y' ||
-				   feathead[3] != 'p')
-					log_warn("Ttypes file header not \'feat\'!");
+				if(feathead[0] != 'f' ||
+				   feathead[1] != 'e' ||
+				   feathead[2] != 'a' ||
+				   feathead[3] != 't')
+					log_warn("Features file header not \'feat\'!");
 				if(!WMT_ReadFromFile(featf, sizeof(unsigned int), 1, &map->featureVersion))
 					log_error("Failed to read features version!");
 				if(!WMT_ReadFromFile(featf, sizeof(unsigned int), 1, &map->featuresCount))
@@ -521,7 +521,7 @@ bool WMT_ReadFeaturesFile(WZmap *map) {
 					WMT_ReadFromFile(featf, sizeof(uint32_t), 1, &map->features[featnum].inFire);
 					WMT_ReadFromFile(featf, sizeof(uint32_t), 1, &map->features[featnum].burnStart);
 					WMT_ReadFromFile(featf, sizeof(uint32_t), 1, &map->features[featnum].burnDamage);
-					WMT_PrintFeatureShort(map->features[featnum]);
+					//WMT_PrintFeatureShort(map->features[featnum]);
 				}
 				
 				fclose(featf);
@@ -582,7 +582,7 @@ char* WMT_WriteImage(struct WZmap map, bool CustomPath, char* CustomOutputPath, 
 	if(CustomPath) {
 		snprintf(pngfilename, MAX_PATH_LEN, "%s", CustomOutputPath);
 	} else {
-		snprintf(pngfilename, MAX_PATH_LEN, "/tmp/%s.png", map.mapname);
+		snprintf(pngfilename, MAX_PATH_LEN, "./%s.png", map.mapname);
 	}
 	PngImage OutputImg((unsigned int)map.maptotalx*picturezoom, (unsigned int)map.maptotaly*picturezoom);
 	for(unsigned short counterx=0; counterx<map.maptotalx; counterx++) {

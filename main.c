@@ -15,7 +15,6 @@ char CustomOutputPath[MAX_PATH_LEN];
 bool picturezoomenabled = false;
 unsigned short picturezoom = 1;
 bool OpenWithFeh=false;
-bool BuildPreview=false;
 
 
 int ArgParse(int argc, char **argv) {
@@ -44,10 +43,6 @@ int ArgParse(int argc, char **argv) {
 			IgnoreFree = true;
 		} else if(WMT_equalstr(argv[argcounter], "-feh")) {
 			OpenWithFeh = true;
-		} else if(WMT_equalstr(argv[argcounter], "-b")) {
-			BuildPreview = true;
-		} else if(WMT_equalstr(argv[argcounter], "--build")) {
-			BuildPreview = true;
 		} else if(WMT_equalstr(argv[argcounter], "-z")) {
 			picturezoomenabled = true;
 			picturezoom = atoi(argv[argcounter+1]);
@@ -63,7 +58,6 @@ int ArgParse(int argc, char **argv) {
 			printf("	\n");
 			printf("	Available args:\n");
 			printf("	-h    [--help]  Shows this page.\n");
-			printf("	-b    [--build] Build map overview with preview png\n");
 			printf("	-o <path>       Override files placing in ./output/<mapname>/...\n");
 			printf("	-v              Enables verbose logging level 1. (Usefull info)\n");
 			printf("	-vv             Enables verbose logging level 2. (Maaaany of info)\n");
@@ -90,11 +84,11 @@ int ArgParse(int argc, char **argv) {
 
 int main(int argc, char** argv)
 {
-	printf("Warzone 2100 Maps Tool\n");
-	log_set_level(LOG_FATAL);
+	printf("Warzone 2100 Map Tool\n");
+	log_set_level(LOG_WARN);
 	ArgParse(argc, argv);
 	
-	if(argc >= 1 && BuildPreview) {
+	if(argc >= 1) {
 		struct WZmap buildmap = WMT_ReadMap(wzmappath);
 		assert(buildmap.valid);
 		char *outname;
@@ -102,15 +96,17 @@ int main(int argc, char** argv)
 		printf("Output: %s\n", outname);
 		if(OpenWithFeh) {
 			if(outname == NULL)
-				log_fatal("outname null");
+				exit(0);
 			log_info("Opening output with feh");
 			char fehcmd[MAX_PATH_LEN];
 			snprintf(fehcmd, MAX_PATH_LEN, "feh %s", outname);
 			int retval = system(fehcmd);
-			log_debug("system call returned %d", retval);
+			log_debug("System call returned %d", retval);
 		}
 		free(outname);
 		exit(0);
+	} else {
+		printf("Usage: %s <map path> [args]\n", argv[0]);
 	}
 	exit(0);
 }
