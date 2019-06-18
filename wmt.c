@@ -111,6 +111,14 @@ void WMT_PrintObjectShort(WZobject obj) {
 	printf("Player:    %d\n", obj.player);
 }
 
+void WMT_PrintFeatureShort(WZfeature feat) {
+	printf("WZfeature: %s\n", feat.name);
+	printf("Id:        %d\n", feat.id);
+	printf("X:         %d\n", feat.x);
+	printf("Y:         %d\n", feat.y);
+	printf("Z:         %d\n", feat.z);
+	printf("Player:    %d\n", feat.player);
+}
 
 int WMT_SearchFilename(char** arr, unsigned short sizearr, char* name, short urgent = 0) {
 	//log_trace("Serching filename \"%s\" in array of filenames...", name);
@@ -461,6 +469,73 @@ bool WMT_ReadStructs(WZmap *map) {
 	return success;
 }
 
+bool WMT_ReadFeaturesFile(WZmap *map) {
+	bool success = true;
+	int indexfeat = WMT_SearchFilename(map->filenames, map->totalentries, (char*)"feat.bjo", 2);
+	int openstatus = zip_entry_openbyindex(map->zip, indexfeat);
+	if(openstatus<0) {
+		log_fatal("Opening file by index error! Status %d.", openstatus);
+		success = false;
+	} else {
+		//size_t featfilesize = zip_entry_size(map->zip);
+		size_t readlen;
+		void *featcontents;
+		ssize_t readed = zip_entry_read(map->zip, &featcontents, &readlen);
+		if(readed==-1) {
+			log_fatal("Error reading features file!");
+		} else {
+			FILE* featf = fmemopen(featcontents, readlen, "r");
+			if(featf==NULL) {
+				log_fatal("Error opening as file descriptor!");
+				success = false;
+			} else {
+				char feathead[5] = { '0', '0', '0', '0', '\0'};
+				if(!WMT_ReadFromFile(featf, sizeof(char), 4, &feathead))
+					log_error("Failed to read features file header!");
+				if(feathead[0] != 't' ||
+				   feathead[1] != 't' ||
+				   feathead[2] != 'y' ||
+				   feathead[3] != 'p')
+					log_warn("Ttypes file header not \'feat\'!");
+				if(!WMT_ReadFromFile(featf, sizeof(unsigned int), 1, &map->featureVersion))
+					log_error("Failed to read features version!");
+				if(!WMT_ReadFromFile(featf, sizeof(unsigned int), 1, &map->featuresCount))
+					log_error("Failed to read number of features!");
+				
+				map->features = (WZfeature*)malloc(map->featuresCount * sizeof(WZfeature));
+				if(map->features == NULL)
+					log_error("Error allocating memory for features!");
+				
+				int nameLength = 60;
+				if(map->featureVersion <= 19)
+					nameLength = 40;
+				
+				for(uint32_t featnum = 0; featnum<map->featuresCount; featnum++) {
+					WMT_ReadFromFile(featf, sizeof(char), nameLength, &map->features[featnum].name);
+					WMT_ReadFromFile(featf, sizeof(uint32_t), 1, &map->features[featnum].id);
+					WMT_ReadFromFile(featf, sizeof(uint32_t), 1, &map->features[featnum].x);
+					WMT_ReadFromFile(featf, sizeof(uint32_t), 1, &map->features[featnum].y);
+					WMT_ReadFromFile(featf, sizeof(uint32_t), 1, &map->features[featnum].z);
+					WMT_ReadFromFile(featf, sizeof(uint32_t), 1, &map->features[featnum].direction);
+					WMT_ReadFromFile(featf, sizeof(uint32_t), 1, &map->features[featnum].player);
+					WMT_ReadFromFile(featf, sizeof(uint32_t), 1, &map->features[featnum].inFire);
+					WMT_ReadFromFile(featf, sizeof(uint32_t), 1, &map->features[featnum].burnStart);
+					WMT_ReadFromFile(featf, sizeof(uint32_t), 1, &map->features[featnum].burnDamage);
+					WMT_PrintFeatureShort(map->features[featnum]);
+				}
+				
+				fclose(featf);
+				printf("Features version: %d\n", map->featureVersion);
+				printf("Features count:   %d\n", map->featuresCount);
+			}
+			free(featcontents);
+			featcontents = NULL;
+		}
+		zip_entry_close(map->zip);
+	}
+	return success;
+}
+
 WZmap WMT_ReadMap(char* filename) {
 	struct WZmap map;
 	map.path=filename;
@@ -492,6 +567,11 @@ WZmap WMT_ReadMap(char* filename) {
 		map.valid=false;
 		return map;
 	}
+	if(!WMT_ReadFeaturesFile(&map)) {
+		log_fatal("Error reading features file!");
+		map.valid=false;
+		return map;
+	}
 	log_info("Map reading done!");
 	return map;
 }
@@ -502,7 +582,7 @@ char* WMT_WriteImage(struct WZmap map, bool CustomPath, char* CustomOutputPath, 
 	if(CustomPath) {
 		snprintf(pngfilename, MAX_PATH_LEN, "%s", CustomOutputPath);
 	} else {
-		snprintf(pngfilename, MAX_PATH_LEN, "output/%s.png", map.mapname);
+		snprintf(pngfilename, MAX_PATH_LEN, "/tmp/%s.png", map.mapname);
 	}
 	PngImage OutputImg((unsigned int)map.maptotalx*picturezoom, (unsigned int)map.maptotaly*picturezoom);
 	for(unsigned short counterx=0; counterx<map.maptotalx; counterx++) {
@@ -522,8 +602,7 @@ char* WMT_WriteImage(struct WZmap map, bool CustomPath, char* CustomOutputPath, 
 			}
 		}
 	}
-	for(uint32_t i = 0; i<map.numStructures; i++)
-	{
+	for(uint32_t i = 0; i<map.numStructures; i++) {
 		unsigned short strx = map.structs[i].x/128;
 		unsigned short stry = map.structs[i].y/128;
 		
@@ -531,6 +610,19 @@ char* WMT_WriteImage(struct WZmap map, bool CustomPath, char* CustomOutputPath, 
 			log_debug("Found extractor at %d %d", strx, stry);
 			for(unsigned short zoomcounterx=strx*picturezoom; zoomcounterx<strx*picturezoom+picturezoom; zoomcounterx++) {
 				for(unsigned short zoomcountery=stry*picturezoom; zoomcountery<stry*picturezoom+picturezoom; zoomcountery++) {
+					OutputImg.PutPixel(zoomcounterx, zoomcountery, 255, 255, 0);
+				}
+			}
+		}
+	}
+	//log_debug("%d", map.featuresCount);
+	for(uint32_t i = 0; i<map.featuresCount; i++) {
+		unsigned short featx = map.features[i].x/128;
+		unsigned short featy = map.features[i].y/128;
+		if(strcmp(map.features[i].name, "OilResource") == 0) {
+			log_debug("Found resource at %d %d", featx, featy);
+			for(unsigned short zoomcounterx=featx*picturezoom; zoomcounterx<featx*picturezoom+picturezoom; zoomcounterx++) {
+				for(unsigned short zoomcountery=featy*picturezoom; zoomcountery<featy*picturezoom+picturezoom; zoomcountery++) {
 					OutputImg.PutPixel(zoomcounterx, zoomcountery, 255, 255, 0);
 				}
 			}

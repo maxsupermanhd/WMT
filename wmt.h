@@ -99,6 +99,19 @@ struct WZobject {
 	//char script[32];
 };
 
+struct WZfeature {
+	char name[128];
+	uint32_t id;
+	uint32_t x;
+	uint32_t y;
+	uint32_t z;
+	uint32_t direction;
+	uint32_t player;
+	uint32_t inFire;
+	uint32_t burnStart;
+	uint32_t burnDamage;
+};
+
 struct WZmap {
 	char* path;
 	char* mapname;
@@ -122,11 +135,17 @@ struct WZmap {
 	
 	uint32_t structVersion;
 	uint32_t numStructures;
-	WZobject *structs;
+	WZobject *structs = NULL;
+	
+	uint32_t featureVersion;
+	uint32_t featuresCount;
+	WZfeature *features = NULL;
 	
 	~WZmap() {
 		free(mapheight);
 		free(filenames);
+		free(structs);
+		free(features);
 		for(int i=0; i<totalentries; i++)
 			free(filenames[i]);
 		zip_entry_close(zip);
