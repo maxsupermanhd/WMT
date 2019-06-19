@@ -275,7 +275,7 @@ bool WMT_ReadTTypesFile(WZmap *map) {
 				else if (TileSetProbe[0] == 0 && TileSetProbe[1] == 0 && TileSetProbe[2] == 2)
 					map->tileset = tileset_rockies;
 				
-				log_info("Tileset: %s", WMT_PrintTilesetName(map->tileset));
+				printf("Tileset: %s", WMT_PrintTilesetName(map->tileset));
 				
 				fclose(ttpf);
 				//printf("Results of readyng ttypes.ttp:\n");
@@ -572,8 +572,26 @@ WZmap WMT_ReadMap(char* filename) {
 	struct WZmap map;
 	map.path=filename;
 	map.zip = zip_open(map.path, 0, 'r');
+	if(map.zip == NULL)
+		map.zip = zip_open(map.path, 1, 'r');
+	if(map.zip == NULL)
+		map.zip = zip_open(map.path, 2, 'r');
+	if(map.zip == NULL)
+		map.zip = zip_open(map.path, 3, 'r');
+	if(map.zip == NULL)
+		map.zip = zip_open(map.path, 4, 'r');
+	if(map.zip == NULL)
+		map.zip = zip_open(map.path, 5, 'r');
+	if(map.zip == NULL)
+		map.zip = zip_open(map.path, 6, 'r');
+	if(map.zip == NULL)
+		map.zip = zip_open(map.path, 7, 'r');
+	if(map.zip == NULL)
+		map.zip = zip_open(map.path, 8, 'r');
+	if(map.zip == NULL)
+		map.zip = zip_open(map.path, 9, 'r');
 	if(map.zip == NULL) {
-		log_fatal("Error opening/reading warzone map file! Exiting.");
+		log_fatal("Error opening/reading warzone map file! (bad zip file)");
 		map.valid=false;
 		return map;
 	}
@@ -678,8 +696,8 @@ char* WMT_WriteImage(struct WZmap map, bool CustomPath, char* CustomOutputPath, 
 		}
 		if(strcmp(map.structs[i].name, "A0CyborgFactory") == 0) {
 			log_debug("Found cyborg at %d %d", strx, stry);
-			_WMT_PutZoomPixel(&OutputImg, picturezoom, strx, stry, 255, 255, 0);
-			_WMT_PutZoomPixel(&OutputImg, picturezoom, strx, stry+1, 255, 255, 0);
+			_WMT_PutZoomPixel(&OutputImg, picturezoom, strx, stry, 0, 255, 0);
+			_WMT_PutZoomPixel(&OutputImg, picturezoom, strx, stry+1, 0, 255, 0);
 		}
 		if(strcmp(map.structs[i].name, "A0ResearchFacility") == 0 ||
 		   strcmp(map.structs[i].name, "A0CommandCentre") == 0 ||

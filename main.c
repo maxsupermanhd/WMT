@@ -90,7 +90,9 @@ int main(int argc, char** argv)
 	
 	if(argc >= 1) {
 		struct WZmap buildmap = WMT_ReadMap(wzmappath);
-		assert(buildmap.valid);
+		if(buildmap.valid == false) {
+			log_fatal("Error building info for file %s!", argv[1]);
+		}
 		char *outname;
 		outname = WMT_WriteImage(buildmap, CustomOutputPathFlag, CustomOutputPath, picturezoom);
 		printf("Output: %s\n", outname);
