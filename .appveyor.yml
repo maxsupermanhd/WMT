@@ -1,0 +1,34 @@
+image: Ubuntu1804
+
+init:
+    - git config --global core.autocrlf input
+
+clone_folder: /opt/WMT
+shallow_clone: false
+
+matrix:
+    fast_finish: false
+
+platform:
+    - x64
+    - x86
+
+configuration:
+    - Debug
+    - Release
+
+#install:
+#    - 
+
+build_script:
+    - make -j
+    - make pkg
+
+#test_script:
+#    - 
+
+artifacts:
+    - path: /opt/WMT/WMT
+      name: Warzone Map Tool binary
+    - path: /opt/WMT/WMT.deb
+      name: Warzone Map Tool deb package
