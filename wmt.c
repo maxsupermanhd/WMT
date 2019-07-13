@@ -568,62 +568,55 @@ bool WMT_ReadFeaturesFile(WZmap *map) {
 	return success;
 }
 
-WZmap WMT_ReadMap(char* filename) {
-	struct WZmap map;
-	map.path=filename;
-	map.zip = zip_open(map.path, 0, 'r');
-	if(map.zip == NULL)
-		map.zip = zip_open(map.path, 1, 'r');
-	if(map.zip == NULL)
-		map.zip = zip_open(map.path, 2, 'r');
-	if(map.zip == NULL)
-		map.zip = zip_open(map.path, 3, 'r');
-	if(map.zip == NULL)
-		map.zip = zip_open(map.path, 4, 'r');
-	if(map.zip == NULL)
-		map.zip = zip_open(map.path, 5, 'r');
-	if(map.zip == NULL)
-		map.zip = zip_open(map.path, 6, 'r');
-	if(map.zip == NULL)
-		map.zip = zip_open(map.path, 7, 'r');
-	if(map.zip == NULL)
-		map.zip = zip_open(map.path, 8, 'r');
-	if(map.zip == NULL)
-		map.zip = zip_open(map.path, 9, 'r');
-	if(map.zip == NULL) {
+void WMT_ReadMap(char* filename, WZmap *map) {
+	//struct WZmap map = (struct WZmap)malloc(sizeof(struct WZmap));
+	map->path=filename;
+	map->zip = zip_open(map->path, 0, 'r');
+	if(map->zip == NULL)
+		map->zip = zip_open(map->path, 1, 'r');
+	if(map->zip == NULL)
+		map->zip = zip_open(map->path, 2, 'r');
+	if(map->zip == NULL)
+		map->zip = zip_open(map->path, 3, 'r');
+	if(map->zip == NULL)
+		map->zip = zip_open(map->path, 4, 'r');
+	if(map->zip == NULL)
+		map->zip = zip_open(map->path, 5, 'r');
+	if(map->zip == NULL)
+		map->zip = zip_open(map->path, 6, 'r');
+	if(map->zip == NULL)
+		map->zip = zip_open(map->path, 7, 'r');
+	if(map->zip == NULL)
+		map->zip = zip_open(map->path, 8, 'r');
+	if(map->zip == NULL)
+		map->zip = zip_open(map->path, 9, 'r');
+	if(map->zip == NULL) {
 		log_fatal("Error opening/reading warzone map file! (bad zip file)");
-		map.valid=false;
-		return map;
+		map->valid=false;
 	}
-	map.mapname = WMT_GetMapNameFromFilename(filename);
-	printf("Map name: \"%s\"\n", map.mapname);
-	if(!WMT_ListFiles(&map)) {
+	map->mapname = WMT_GetMapNameFromFilename(filename);
+	printf("Map name: \"%s\"\n", map->mapname);
+	if(!WMT_ListFiles(map)) {
 		log_fatal("Error listing map files!");
-		map.valid=false;
-		return map;
+		map->valid=false;
 	}
-	if(!WMT_ReadTTypesFile(&map)) {
+	if(!WMT_ReadTTypesFile(map)) {
 		log_fatal("Error reading ttypes file!");
-		map.valid=false;
-		return map;
+		map->valid=false;
 	}
-	if(!WMT_ReadGameMapFile(&map)) {
+	if(!WMT_ReadGameMapFile(map)) {
 		log_fatal("Error reading map file!");
-		map.valid=false;
-		return map;
+		map->valid=false;
 	}
-	if(!WMT_ReadStructs(&map)) {
+	if(!WMT_ReadStructs(map)) {
 		log_fatal("Error reading struct file!");
-		map.valid=false;
-		return map;
+		map->valid=false;
 	}
-	if(!WMT_ReadFeaturesFile(&map)) {
+	if(!WMT_ReadFeaturesFile(map)) {
 		log_fatal("Error reading features file!");
-		map.valid=false;
-		return map;
+		map->valid=false;
 	}
 	log_info("Map reading done!");
-	return map;
 }
 
 void _WMT_PutZoomPixel(PngImage *img, int zoom, unsigned short x, unsigned short y, uint8_t r, uint8_t g, uint8_t b) {
@@ -635,49 +628,49 @@ void _WMT_PutZoomPixel(PngImage *img, int zoom, unsigned short x, unsigned short
 	}
 }
 
-char* WMT_WriteImage(struct WZmap map, bool CustomPath, char* CustomOutputPath, int picturezoom) {
+char* WMT_WriteImage(struct WZmap *map, bool CustomPath, char* CustomOutputPath, int picturezoom) {
 	log_info("Drawing preview...");
 	char *pngfilename = (char*)malloc(sizeof(char)*MAX_PATH_LEN);
 	if(CustomPath) {
 		snprintf(pngfilename, MAX_PATH_LEN, "%s", CustomOutputPath);
 	} else {
-		snprintf(pngfilename, MAX_PATH_LEN, "./%s.png", map.mapname);
+		snprintf(pngfilename, MAX_PATH_LEN, "./%s.png", map->mapname);
 	}
-	PngImage OutputImg((unsigned int)map.maptotalx*picturezoom, (unsigned int)map.maptotaly*picturezoom);
-	for(unsigned short counterx=0; counterx<map.maptotalx; counterx++) {
-		for(unsigned short countery=0; countery<map.maptotaly; countery++) {
-			int nowposinarray = countery*map.maptotalx+counterx;
-			if(map.mapwater[nowposinarray]) {
+	PngImage OutputImg((unsigned int)map->maptotalx*picturezoom, (unsigned int)map->maptotaly*picturezoom);
+	for(unsigned short counterx=0; counterx<map->maptotalx; counterx++) {
+		for(unsigned short countery=0; countery<map->maptotaly; countery++) {
+			int nowposinarray = countery*map->maptotalx+counterx;
+			if(map->mapwater[nowposinarray]) {
 				_WMT_PutZoomPixel(&OutputImg, 
 								  picturezoom,
 								  counterx, 
 								  countery, 
-								  map.mapheight[nowposinarray]/4, 
-								  map.mapheight[nowposinarray]/4, 
-								  map.mapheight[nowposinarray]);
+								  map->mapheight[nowposinarray]/4, 
+								  map->mapheight[nowposinarray]/4, 
+								  map->mapheight[nowposinarray]);
 			}
-			else if(map.mapcliff[nowposinarray]) {
+			else if(map->mapcliff[nowposinarray]) {
 				_WMT_PutZoomPixel(&OutputImg, 
 								  picturezoom,
 								  counterx, 
 								  countery, 
-								  map.mapheight[nowposinarray], 
-								  map.mapheight[nowposinarray]/4, 
-								  map.mapheight[nowposinarray]/4);
+								  map->mapheight[nowposinarray], 
+								  map->mapheight[nowposinarray]/4, 
+								  map->mapheight[nowposinarray]/4);
 			} else {
 				_WMT_PutZoomPixel(&OutputImg, 
 								  picturezoom,
 								  counterx, 
 								  countery, 
-								  map.mapheight[nowposinarray], 
-								  map.mapheight[nowposinarray], 
-								  map.mapheight[nowposinarray]);
+								  map->mapheight[nowposinarray], 
+								  map->mapheight[nowposinarray], 
+								  map->mapheight[nowposinarray]);
 			}
 		}
 	}
-	for(uint32_t i = 0; i<map.numStructures; i++) {
-		unsigned short strx = map.structs[i].x/128;
-		unsigned short stry = map.structs[i].y/128;
+	for(uint32_t i = 0; i<map->numStructures; i++) {
+		unsigned short strx = map->structs[i].x/128;
+		unsigned short stry = map->structs[i].y/128;
 		
 		//
 		//  [+0] [+1] [+2]
@@ -690,33 +683,33 @@ char* WMT_WriteImage(struct WZmap map, bool CustomPath, char* CustomOutputPath, 
 		//  [+2] [+2] [+2]
 		//
 		
-		if(strcmp(map.structs[i].name, "A0ResourceExtractor") == 0) {
+		if(strcmp(map->structs[i].name, "A0ResourceExtractor") == 0) {
 			log_debug("Found extractor at %d %d", strx, stry);
 			_WMT_PutZoomPixel(&OutputImg, picturezoom, strx, stry, 255, 255, 0);
 		}
-		if(strcmp(map.structs[i].name, "A0CyborgFactory") == 0) {
+		if(strcmp(map->structs[i].name, "A0CyborgFactory") == 0) {
 			log_debug("Found cyborg at %d %d", strx, stry);
 			_WMT_PutZoomPixel(&OutputImg, picturezoom, strx, stry, 0, 255, 0);
 			_WMT_PutZoomPixel(&OutputImg, picturezoom, strx, stry+1, 0, 255, 0);
 		}
-		if(strcmp(map.structs[i].name, "A0ResearchFacility") == 0 ||
-		   strcmp(map.structs[i].name, "A0CommandCentre") == 0 ||
-		   strcmp(map.structs[i].name, "A0PowerGenerator") == 0 ||
-		   strcmp(map.structs[i].name, "A0Sat-linkCentre") == 0 ||
-		   strcmp(map.structs[i].name, "A0LasSatCommand") == 0 ||
-		   strcmp(map.structs[i].name, "X-Super-Cannon") == 0 ||
-		   strcmp(map.structs[i].name, "X-Super-MassDriver") == 0 ||
-		   strcmp(map.structs[i].name, "X-Super-Missile") == 0 ||
-		   strcmp(map.structs[i].name, "X-Super-Rocket") == 0 ||
-		   strcmp(map.structs[i].name, "A0ComDroidControl") == 0) {
+		if(strcmp(map->structs[i].name, "A0ResearchFacility") == 0 ||
+		   strcmp(map->structs[i].name, "A0CommandCentre") == 0 ||
+		   strcmp(map->structs[i].name, "A0PowerGenerator") == 0 ||
+		   strcmp(map->structs[i].name, "A0Sat-linkCentre") == 0 ||
+		   strcmp(map->structs[i].name, "A0LasSatCommand") == 0 ||
+		   strcmp(map->structs[i].name, "X-Super-Cannon") == 0 ||
+		   strcmp(map->structs[i].name, "X-Super-MassDriver") == 0 ||
+		   strcmp(map->structs[i].name, "X-Super-Missile") == 0 ||
+		   strcmp(map->structs[i].name, "X-Super-Rocket") == 0 ||
+		   strcmp(map->structs[i].name, "A0ComDroidControl") == 0) {
 			log_debug("Found 2x2 object at %d %d", strx, stry);
 			_WMT_PutZoomPixel(&OutputImg, picturezoom, strx, stry, 0, 255, 0);
 			_WMT_PutZoomPixel(&OutputImg, picturezoom, strx+1, stry, 0, 255, 0);
 			_WMT_PutZoomPixel(&OutputImg, picturezoom, strx, stry+1, 0, 255, 0);
 			_WMT_PutZoomPixel(&OutputImg, picturezoom, strx+1, stry+1, 0, 255, 0);
 		}
-		if(strcmp(map.structs[i].name, "A0LightFactory") == 0 ||
-		   strcmp(map.structs[i].name, "A0VTolFactory1") == 0) {
+		if(strcmp(map->structs[i].name, "A0LightFactory") == 0 ||
+		   strcmp(map->structs[i].name, "A0VTolFactory1") == 0) {
 			log_debug("Found factory at %d %d", strx, stry);
 			_WMT_PutZoomPixel(&OutputImg, picturezoom, strx,   stry,   0, 255, 0);
 			_WMT_PutZoomPixel(&OutputImg, picturezoom, strx+1, stry,   0, 255, 0);
@@ -730,11 +723,11 @@ char* WMT_WriteImage(struct WZmap map, bool CustomPath, char* CustomOutputPath, 
 		}
 		
 	}
-	//log_debug("%d", map.featuresCount);
-	for(uint32_t i = 0; i<map.featuresCount; i++) {
-		unsigned short featx = map.features[i].x/128;
-		unsigned short featy = map.features[i].y/128;
-		if(strcmp(map.features[i].name, "OilResource") == 0) {
+	//log_debug("%d", map->featuresCount);
+	for(uint32_t i = 0; i<map->featuresCount; i++) {
+		unsigned short featx = map->features[i].x/128;
+		unsigned short featy = map->features[i].y/128;
+		if(strcmp(map->features[i].name, "OilResource") == 0) {
 			log_debug("Found resource at %d %d", featx, featy);
 			_WMT_PutZoomPixel(&OutputImg, picturezoom, featx, featy, 255, 255, 0);
 		}

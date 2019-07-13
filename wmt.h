@@ -52,8 +52,8 @@ int WMT_str_cut(char *str, int begin, int len);
 bool WMT_str_match(char* str, char* sub);
 int WMT_SearchFilename(char** arr, unsigned short sizearr, char* name, short urgent);
 
-struct WZmap WMT_ReadMap(char* filename);
-char* WMT_WriteImage(struct WZmap map, bool CustomPath, char* CustomOutputPath, int picturezoom);
+void WMT_ReadMap(char* filename, struct WZmap *map);
+char* WMT_WriteImage(struct WZmap *map, bool CustomPath, char* CustomOutputPath, int picturezoom);
 
 enum WZtileset { tileset_arizona, tileset_urban, tileset_rockies };
 
@@ -144,7 +144,13 @@ struct WZmap {
 	uint32_t featuresCount;
 	WZfeature *features = NULL;
 	
+	bool fields_clean = false;
+	
 	~WZmap() {
+		if(fields_clean) {
+			printf("Prevented double clean!\n");
+			return;
+		}
 		free(mapheight);
 		free(filenames);
 		free(structs);
@@ -153,6 +159,7 @@ struct WZmap {
 			free(filenames[i]);
 		zip_entry_close(zip);
 		zip_close(zip);
+		fields_clean=true;
 	}
 };
 
