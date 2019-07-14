@@ -15,6 +15,7 @@ char CustomOutputPath[MAX_PATH_LEN];
 bool picturezoomenabled = false;
 unsigned short picturezoom = 1;
 bool OpenWithFeh=false;
+struct ImageOptions options;
 
 
 int ArgParse(int argc, char **argv) {
@@ -44,8 +45,8 @@ int ArgParse(int argc, char **argv) {
 		} else if(WMT_equalstr(argv[argcounter], "-feh")) {
 			OpenWithFeh = true;
 		} else if(WMT_equalstr(argv[argcounter], "-z")) {
-			picturezoomenabled = true;
-			picturezoom = atoi(argv[argcounter+1]);
+			options.ZoomEnabled = true;
+			options.ZoomLevel = atoi(argv[argcounter+1]);
 			argcounter++;
 		} else if(WMT_equalstr(argv[argcounter], "-o")) {
 			CustomOutputPathFlag = true;
@@ -53,6 +54,16 @@ int ArgParse(int argc, char **argv) {
 				CustomOutputPath[i] = 0;
 			snprintf(CustomOutputPath, MAX_PATH_LEN, "%s", argv[argcounter+1]);
 			argcounter++;
+		} else if(WMT_equalstr(argv[argcounter], "--nowater")) {
+			options.DrawWater=false;
+		} else if(WMT_equalstr(argv[argcounter], "--singlecolorwater")) {
+			options.SinglecolorWater=true;
+		} else if(WMT_equalstr(argv[argcounter], "--nobuildings")) {
+			options.DrawBuildings=false;
+		} else if(WMT_equalstr(argv[argcounter], "--nooil")) {
+			options.DrawOilRigs=false;
+		} else if(WMT_equalstr(argv[argcounter], "--nocliff")) {
+			options.DrawCliffsAsRed=false;
 		} else if(WMT_equalstr(argv[argcounter], "--help")||WMT_equalstr(argv[argcounter], "-h")) {
 			printf("\n	Usage: %s [map-path] [args]\n", argv[0]);
 			printf("	\n");
@@ -66,8 +77,14 @@ int ArgParse(int argc, char **argv) {
 			printf("	-v999           Enables vrbos- ripping your terminal history with spam.\n");
 			printf("	--version       Show version and exit.\n");
 			printf("	-z <level>      Overrides zoom level of image. (ex. zoom=1 pixels:tiles 1:1 \n");
-			printf("                     zoom=4 pixels:tiles 4:1)                                     ");
-			printf("    -feh            Open output image with feh                                    ");
+			printf("                     zoom=4 pixels:tiles 4:1)                                     \n");
+			printf("    -feh            Open output image with feh                                    \n");
+			printf("    --nowater       Forcing not to draw water. Drawing heghtmap instead.\n");
+			printf("    --singlecolorwater \n");
+			printf("                    Forcing to draw water as always blue (not by height division)\n");
+			printf("    --nobuildings   Forcing not to draw buildings\n");
+			printf("    --nooil         Forcing not to draw oil rigs\n");
+			printf("    --nocliff       Forcing not to draw cliff tiles as red\n");
 			//printf("	-q [--quiet]    No stdout output.\n");
 			printf("\n");
 			exit(0);
@@ -95,7 +112,7 @@ int main(int argc, char** argv)
 			log_fatal("Error building info for file %s!", argv[1]);
 		}
 		char *outname;
-		outname = WMT_WriteImage(&buildmap, CustomOutputPathFlag, CustomOutputPath, picturezoom);
+		outname = WMT_WriteImage(&buildmap, CustomOutputPathFlag, CustomOutputPath, options);
 		printf("Output: %s\n", outname);
 		if(OpenWithFeh) {
 			if(outname == NULL)

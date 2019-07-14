@@ -23,4 +23,4 @@ zip.o: zip.c zip.h
 wmt.o: wmt.c wmt.h
 	g++ wmt.c -o wmt.o -c -std=c++17 $(CCFLAGS)
 clean:
-	rm *.o WMT -f
+	rm *.o WMT WMT.deb -f

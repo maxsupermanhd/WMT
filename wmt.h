@@ -53,7 +53,7 @@ bool WMT_str_match(char* str, char* sub);
 int WMT_SearchFilename(char** arr, unsigned short sizearr, char* name, short urgent);
 
 void WMT_ReadMap(char* filename, struct WZmap *map);
-char* WMT_WriteImage(struct WZmap *map, bool CustomPath, char* CustomOutputPath, int picturezoom);
+char* WMT_WriteImage(struct WZmap *map, bool CustomPath, char* CustomOutputPath, struct ImageOptions);
 
 enum WZtileset { tileset_arizona, tileset_urban, tileset_rockies };
 
@@ -161,6 +161,16 @@ struct WZmap {
 		zip_close(zip);
 		fields_clean=true;
 	}
+};
+
+struct ImageOptions {
+	bool DrawWater = true;
+	bool DrawCliffsAsRed = true;
+	bool DrawBuildings = true;
+	bool DrawOilRigs = true;
+	bool SinglecolorWater = false;
+	bool ZoomEnabled = false;
+	int ZoomLevel = 1;
 };
 
 struct PngImage {
