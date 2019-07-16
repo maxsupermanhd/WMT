@@ -165,19 +165,20 @@ char* WMT_GetMapNameFromFilename(char* filename) {
 }
 
 bool WMT_ListFiles(WZmap *map) { //pass pointer to struct to make changes
-	bool success=true;
 	map->totalentries = zip_total_entries(map->zip);
 	map->filenames = (char**) calloc(map->totalentries, sizeof(char*));
 	for(int i=0; i<map->totalentries; i++)
 		map->filenames[i] = (char*) calloc(1024, sizeof(char));
 	if(!map->filenames) {
 		log_fatal("Filenames array allocation fail!");
-		success = false;
+		map->errorcode = -2;
+		return false;
 	}
 	for(int i=0; i<map->totalentries; i++) {
 		if(!map->filenames[i]) {
 			log_fatal("Filename %d allocation fail!");
-			success = false;
+			map->errorcode = -2;
+			return false;
 		}
 	}
 	//log_trace("Listing all shit up (%d) ...", map->totalentries);
@@ -191,10 +192,9 @@ bool WMT_ListFiles(WZmap *map) { //pass pointer to struct to make changes
 		}
 		else {
 			log_error("Error openig file %d! Status %d", index, ret);
-			success = false;
 		}
 	}
-	return success;
+	return true;
 }
 
 char* WMT_PrintTilesetName(WZtileset t) {
@@ -212,6 +212,16 @@ char* WMT_PrintTilesetName(WZtileset t) {
 	return (char*)"Unknown";
 	break;
 	}
+}
+
+void WMT_PrintInfoAboutMap(struct WZmap map) {
+	if(!map.valid) {
+		printf("Not valid map!\n");
+		return;
+	}
+	printf("Map: %s\n", map.mapname);
+	printf("Tileset: %s\n", WMT_PrintTilesetName(map.tileset));
+	printf("Size: %dx%d\n", map.maptotalx, map.maptotaly);
 }
 
 bool WMT_ReadFromFile(FILE *fp, size_t s, size_t v, void *var) {
@@ -234,6 +244,7 @@ bool WMT_ReadTTypesFile(WZmap *map) {
 	int openstatus = zip_entry_openbyindex(map->zip, indexttypes);
 	if(openstatus<0) {
 		log_fatal("Opening file by index error! Status %d.", openstatus);
+		map->errorcode = -4;
 		success = false;
 	} else {
 		//size_t ttpfilesize = zip_entry_size(map->zip);
@@ -275,7 +286,7 @@ bool WMT_ReadTTypesFile(WZmap *map) {
 				else if (TileSetProbe[0] == 0 && TileSetProbe[1] == 0 && TileSetProbe[2] == 2)
 					map->tileset = tileset_rockies;
 				
-				printf("Tileset: %s\n", WMT_PrintTilesetName(map->tileset));
+				//printf("Tileset: %s\n", WMT_PrintTilesetName(map->tileset));
 				
 				fclose(ttpf);
 				//printf("Results of readyng ttypes.ttp:\n");
@@ -308,6 +319,7 @@ bool WMT_ReadGameMapFile(WZmap *map) {
 	}
 	if(openstatus<0) {
 		log_fatal("Failed to open game.map file!");
+		map->errorcode = -4;
 		success = false;
 	} else {
 		//size_t mapfilesize = zip_entry_size(map->zip);
@@ -337,8 +349,8 @@ bool WMT_ReadGameMapFile(WZmap *map) {
 				log_error("Failed to read map bounds (y)");
 			//printf("\nResults of reading game.map\n");
 			//printf("Version: %d\n", map->mapver);
-			printf("Width:   %d\n", map->maptotaly);
-			printf("Height:  %d\n", map->maptotalx);
+			//printf("Width:   %d\n", map->maptotaly);
+			//printf("Height:  %d\n", map->maptotalx);
 			
 			int maparraysize = map->maptotaly*map->maptotalx;
 			map->mapheight = (unsigned short*) calloc(maparraysize, sizeof(unsigned short));
@@ -387,6 +399,7 @@ bool WMT_ReadStructs(WZmap *map) {
 	int openstatus = zip_entry_openbyindex(map->zip, indexstructs);
 	if(openstatus<0) {
 		log_fatal("Failed to open struct.bjo!");
+		map->errorcode = -4;
 		success = false;
 	} else {
 		void *structcontents;
@@ -414,14 +427,16 @@ bool WMT_ReadStructs(WZmap *map) {
 				if(!WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->numStructures))
 					log_error("Failed to read structure count!");
 				
-				printf("Struct version: %d\n", map->structVersion);
-				printf("Structs count:  %d\n", map->numStructures);
+				//printf("Struct version: %d\n", map->structVersion);
+				//printf("Structs count:  %d\n", map->numStructures);
 				
 				
 				map->structs = (WZobject*)malloc(sizeof(WZobject)*map->numStructures);
-				if(map->structs == NULL)
+				if(map->structs == NULL) {
 					log_fatal("Failed to allocate memory for structures!");
-				
+					map->errorcode = -2;
+					return false;
+				}
 				int nameLength = 60;
 				if(map->structVersion <= 19)
 					nameLength = 40;
@@ -507,6 +522,7 @@ bool WMT_ReadFeaturesFile(WZmap *map) {
 	int openstatus = zip_entry_openbyindex(map->zip, indexfeat);
 	if(openstatus<0) {
 		log_fatal("Opening file by index error! Status %d.", openstatus);
+		map->errorcode = -4;
 		success = false;
 	} else {
 		//size_t featfilesize = zip_entry_size(map->zip);
@@ -535,9 +551,11 @@ bool WMT_ReadFeaturesFile(WZmap *map) {
 					log_error("Failed to read number of features!");
 				
 				map->features = (WZfeature*)malloc(map->featuresCount * sizeof(WZfeature));
-				if(map->features == NULL)
+				if(map->features == NULL) {
 					log_error("Error allocating memory for features!");
-				
+					map->errorcode = -2;
+					return false;
+				}
 				int nameLength = 60;
 				if(map->featureVersion <= 19)
 					nameLength = 40;
@@ -557,8 +575,8 @@ bool WMT_ReadFeaturesFile(WZmap *map) {
 				}
 				
 				fclose(featf);
-				printf("Features version: %d\n", map->featureVersion);
-				printf("Features count:   %d\n", map->featuresCount);
+				//printf("Features version: %d\n", map->featureVersion);
+				//printf("Features count:   %d\n", map->featuresCount);
 			}
 			free(featcontents);
 			featcontents = NULL;
@@ -593,10 +611,11 @@ void WMT_ReadMap(char* filename, WZmap *map) {
 	if(map->zip == NULL) {
 		log_fatal("Error opening/reading warzone map file! (bad zip file)");
 		map->valid=false;
+		map->errorcode = -1;
 		return;
 	}
 	map->mapname = WMT_GetMapNameFromFilename(filename);
-	printf("Map name: \"%s\"\n", map->mapname);
+	//printf("Map name: \"%s\"\n", map->mapname);
 	if(!WMT_ListFiles(map)) {
 		log_fatal("Error listing map files!");
 		map->valid=false;
@@ -640,6 +659,7 @@ char* WMT_WriteImage(struct WZmap *map, bool CustomPath, char* CustomOutputPath,
 	char *pngfilename = (char*)malloc(sizeof(char)*MAX_PATH_LEN);
 	if(pngfilename == NULL) {
 		log_fatal("Error allocation memory for output filename");
+		map->errorcode = -2;
 		return (char*)"";
 	}
 	if(CustomPath) {
@@ -758,7 +778,7 @@ char* WMT_WriteImage(struct WZmap *map, bool CustomPath, char* CustomOutputPath,
 		}
 	}
 	OutputImg.WriteImage(pngfilename);
-	printf("\nHeightmap written to %s\n", pngfilename);
+	//printf("\nHeightmap written to %s\n", pngfilename);
 	return pngfilename;
 }
 

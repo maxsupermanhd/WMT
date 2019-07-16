@@ -51,6 +51,7 @@ bool WMT_equalstr(char* trg, const char* chk);
 int WMT_str_cut(char *str, int begin, int len);
 bool WMT_str_match(char* str, char* sub);
 int WMT_SearchFilename(char** arr, unsigned short sizearr, char* name, short urgent);
+void WMT_PrintInfoAboutMap(struct WZmap map);
 
 void WMT_ReadMap(char* filename, struct WZmap *map);
 char* WMT_WriteImage(struct WZmap *map, bool CustomPath, char* CustomOutputPath, struct ImageOptions);
@@ -117,7 +118,9 @@ struct WZfeature {
 struct WZmap {
 	char* path;
 	char* mapname;
+	
 	bool valid = true;
+	int errorcode = 0;
 	
 	char **filenames = NULL;
 	zip_t *zip;

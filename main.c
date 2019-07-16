@@ -64,12 +64,16 @@ int ArgParse(int argc, char **argv) {
 			options.DrawOilRigs=false;
 		} else if(WMT_equalstr(argv[argcounter], "--nocliff")) {
 			options.DrawCliffsAsRed=false;
+		} else if(WMT_equalstr(argv[argcounter], "-q")) {
+			log_set_quiet(1);
+		} else if(WMT_equalstr(argv[argcounter], "--quiet")) {
+			log_set_quiet(1);
 		} else if(WMT_equalstr(argv[argcounter], "--help")||WMT_equalstr(argv[argcounter], "-h")) {
 			printf("\n	Usage: %s [map-path] [args]\n", argv[0]);
 			printf("	\n");
 			printf("	Available args:\n");
 			printf("	-h    [--help]  Shows this page.\n");
-			printf("	-o <path>       Override files placing in ./output/<mapname>/...\n");
+			printf("	-o <path>       Override output filename.\n");
 			printf("	-v              Enables verbose logging level 1. (Usefull info)\n");
 			printf("	-vv             Enables verbose logging level 2. (Maaaany of info)\n");
 			printf("	-vvv            Enables verbose logging level 3. (Just spam)\n");
@@ -77,15 +81,15 @@ int ArgParse(int argc, char **argv) {
 			printf("	-v999           Enables vrbos- ripping your terminal history with spam.\n");
 			printf("	--version       Show version and exit.\n");
 			printf("	-z <level>      Overrides zoom level of image. (ex. zoom=1 pixels:tiles 1:1 \n");
-			printf("                     zoom=4 pixels:tiles 4:1)                                     \n");
-			printf("    -feh            Open output image with feh                                    \n");
-			printf("    --nowater       Forcing not to draw water. Drawing heghtmap instead.\n");
-			printf("    --singlecolorwater \n");
-			printf("                    Forcing to draw water as always blue (not by height division)\n");
-			printf("    --nobuildings   Forcing not to draw buildings\n");
-			printf("    --nooil         Forcing not to draw oil rigs\n");
-			printf("    --nocliff       Forcing not to draw cliff tiles as red\n");
-			//printf("	-q [--quiet]    No stdout output.\n");
+			printf("					 zoom=4 pixels:tiles 4:1)                                     \n");
+			printf("	-feh            Open output image with feh                                    \n");
+			printf("	--nowater       Forcing not to draw water. Drawing heghtmap instead.\n");
+			printf("	--singlecolorwater \n");
+			printf("	                Forcing to draw water as always blue (not by height division)\n");
+			printf("	--nobuildings   Forcing not to draw buildings\n");
+			printf("	--nooil         Forcing not to draw oil rigs\n");
+			printf("	--nocliff       Forcing not to draw cliff tiles as red\n");
+			printf("	-q [--quiet]    No stdout output.\n");
 			printf("\n");
 			exit(0);
 		}
@@ -101,34 +105,41 @@ int ArgParse(int argc, char **argv) {
 
 int main(int argc, char** argv)
 {
-	printf("Warzone 2100 Map Tool\n");
 	log_set_level(LOG_WARN);
 	ArgParse(argc, argv);
-	
-	if(argc >= 1) {
+
+	if(argc > 1) {
 		struct WZmap buildmap;
 		WMT_ReadMap(wzmappath, &buildmap);
 		if(buildmap.valid == false) {
 			log_fatal("Error building info for file %s!", argv[1]);
+			exit(-1);
 		}
 		char *outname;
 		outname = WMT_WriteImage(&buildmap, CustomOutputPathFlag, CustomOutputPath, options);
-		printf("Output: %s\n", outname);
+		printf("Image written to: %s\n", outname);
 		if(OpenWithFeh) {
 			if(outname == NULL)
-				exit(0);
-			log_info("Opening output with feh");
-			char fehcmd[MAX_PATH_LEN];
-			snprintf(fehcmd, MAX_PATH_LEN, "feh %s", outname);
-			int retval = system(fehcmd);
-			log_debug("System call returned %d", retval);
+				log_fatal("Null filename! (%d)", buildmap.errorcode);
+			else {
+				int dpkg_ret = system("dpkg-query -s 'feh' > /dev/null 2>&1\n");
+				if(dpkg_ret == 256) {
+					log_fatal("No feh installed!");
+				} else {
+					log_info("Opening output with feh");
+					char fehcmd[MAX_PATH_LEN];
+					snprintf(fehcmd, MAX_PATH_LEN, "feh %s", outname);
+					int retval = system(fehcmd);
+					log_debug("System call returned %d", retval);
+				}
+			}
 		}
 		free(outname);
-		exit(0);
+		exit(buildmap.errorcode);
 	} else {
 		printf("Usage: %s <map path> [args]\n", argv[0]);
 	}
-	exit(0);
+	exit(-1);
 }
 
 
