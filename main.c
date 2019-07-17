@@ -69,7 +69,7 @@ int ArgParse(int argc, char **argv) {
 		} else if(WMT_equalstr(argv[argcounter], "--quiet")) {
 			log_set_quiet(1);
 		} else if(WMT_equalstr(argv[argcounter], "--help")||WMT_equalstr(argv[argcounter], "-h")) {
-			printf("\n	Usage: %s [map-path] [args]\n", argv[0]);
+			printf("\n	Usage: %s <map-path> [args]\n", argv[0]);
 			printf("	\n");
 			printf("	Available args:\n");
 			printf("	-h    [--help]  Shows this page.\n");
@@ -94,8 +94,7 @@ int ArgParse(int argc, char **argv) {
 			exit(0);
 		}
 		else
-			if(argcounter == 1)
-				wzmappath = argv[1];
+			wzmappath = argv[argcounter];
 	}
 	return 0;
 }
