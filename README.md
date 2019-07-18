@@ -6,19 +6,20 @@ Programm for viewing and manipulating Warzone2100 maps.
 
 1. Openig archive
 2. Listing it contents
-3. Opening files inside zip without unzipping
+3. Opening files inside zip without unzipping (only for linux...)
 4. Reading ttypes file (100%)
-5. Reading game.map file (90%)
-6. Making heightmap
+5. Reading game.map file (100%)
+6. Making full map perview
 7. Getting tile types (cliff, water)
-8. Writing heightmap with filtes to png file
+8. Writing perview with filters to png file
 9. Reading structures data
 10. Oil stuff
 11. Displaying buildings
+12. Primitive gui
 
 # TODO
 
-1. Make some basic gui
+1. Make some gui
 2. Reading 100% of game.map (zones)
 3. Render tiles to the top view map preview
 
