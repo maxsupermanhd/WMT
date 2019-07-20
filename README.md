@@ -1,27 +1,25 @@
 # Warzone map tool
 
-Programm for viewing and manipulating Warzone2100 maps.
-
-# Now working
-
-1. Openig archive
-2. Listing it contents
-3. Opening files inside zip without unzipping (only for linux...)
-4. Reading ttypes file (100%)
-5. Reading game.map file (100%)
-6. Making full map perview
-7. Getting tile types (cliff, water)
-8. Writing perview with filters to png file
-9. Reading structures data
-10. Oil stuff
-11. Displaying buildings
-12. Primitive gui
+Tool for viewing and generating previews of Warzone2100 maps.
 
 # TODO
 
 1. Make some gui
 2. Reading 100% of game.map (zones)
 3. Render tiles to the top view map preview
+
+# How to build
+
+1. Install deps.
+ That can be done with `$ sudo apt-get install gcc libstdc++-6-dev lib32gcc-7-dev libc6-dev make`
+2. Make `$ make`
+
+# How to use
+
+1. Find some warzone map
+2. Run WMT with supplied map file (includes path)
+3. Open with any png viewer/editor generated image.
+4. For more info/tweaks see `--help` argument
 
 # Can be but no ideas how it should work
 

@@ -12,15 +12,15 @@ pkg: WMT
 check-pkg: pkg
 	lintian WMT.deb
 
-WMT: log.o png.o zip.o wmt.o main.c
-	g++ wmt.o log.o png.o zip.o main.c -o WMT $(CCFLAGS)
-log.o: log.c log.h
-	g++ log.c -o log.o -c -DLOG_USE_COLOR $(CCFLAGS)
-png.o: TinyPngOut.cpp TinyPngOut.hpp
-	g++ TinyPngOut.cpp -o png.o -c $(CCFLAGS)
-zip.o: zip.c zip.h
-	g++ zip.c -o zip.o -c $(CCFLAGS)
-wmt.o: wmt.c wmt.h
-	g++ wmt.c -o wmt.o -c -std=c++17 $(CCFLAGS)
+WMT: build/log.o build/png.o build/zip.o build/wmt.o src/main.c
+	g++ build/wmt.o build/log.o build/png.o build/zip.o src/main.c -o WMT $(CCFLAGS)
+build/log.o: lib/log.c lib/log.h
+	g++ lib/log.c -o build/log.o -c -DLOG_USE_COLOR $(CCFLAGS)
+build/png.o: lib/TinyPngOut.cpp lib/TinyPngOut.hpp
+	g++ lib/TinyPngOut.cpp -o build/png.o -c $(CCFLAGS)
+build/zip.o: lib/zip.c lib/zip.h
+	g++ lib/zip.c -o build/zip.o -c $(CCFLAGS)
+build/wmt.o: lib/wmt.c lib/wmt.h
+	g++ lib/wmt.c -o build/wmt.o -c -std=c++17 $(CCFLAGS)
 clean:
-	rm *.o WMT WMT.deb -f
+	rm build WMT WMT.deb -rf

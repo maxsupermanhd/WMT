@@ -5,7 +5,7 @@
  * Written by Maxim Zhuchkov <q3.max.2011@ya.ru>, May 2019
  */
 
-#include "wmt.h"
+#include "../lib/wmt.h"
 
 int DebugPrintLevel = 0;
 char* wzmappath;
@@ -69,27 +69,30 @@ int ArgParse(int argc, char **argv) {
 		} else if(WMT_equalstr(argv[argcounter], "--quiet")) {
 			log_set_quiet(1);
 		} else if(WMT_equalstr(argv[argcounter], "--help")||WMT_equalstr(argv[argcounter], "-h")) {
-			printf("\n	Usage: %s <map-path> [args]\n", argv[0]);
-			printf("	\n");
-			printf("	Available args:\n");
-			printf("	-h    [--help]  Shows this page.\n");
-			printf("	-o <path>       Override output filename.\n");
-			printf("	-v              Enables verbose logging level 1. (Usefull info)\n");
-			printf("	-vv             Enables verbose logging level 2. (Maaaany of info)\n");
-			printf("	-vvv            Enables verbose logging level 3. (Just spam)\n");
-			printf("	-vvvv           Enables verbose logging level 4. (Dont use this)\n");
-			printf("	-v999           Enables vrbos- ripping your terminal history with spam.\n");
-			printf("	--version       Show version and exit.\n");
-			printf("	-z <level>      Overrides zoom level of image. (ex. zoom=1 pixels:tiles 1:1 \n");
-			printf("					 zoom=4 pixels:tiles 4:1)                                     \n");
-			printf("	-feh            Open output image with feh                                    \n");
-			printf("	--nowater       Forcing not to draw water. Drawing heghtmap instead.\n");
-			printf("	--singlecolorwater \n");
-			printf("	                Forcing to draw water as always blue (not by height division)\n");
-			printf("	--nobuildings   Forcing not to draw buildings\n");
-			printf("	--nooil         Forcing not to draw oil rigs\n");
-			printf("	--nocliff       Forcing not to draw cliff tiles as red\n");
-			printf("	-q [--quiet]    No stdout output.\n");
+			printf("   Usage: %s <map-path> [args]\n", argv[0]);
+			printf("   Available args:\n");
+			printf("   \n");
+			printf("   == general ==\n");
+			printf("   -h    [--help]  Shows this page.\n");
+			printf("   -o <path>       Override output filename.\n");
+			printf("   --version       Show version and exit.\n");
+			printf("   -feh            Open output image with feh. (need feh to make this work)\n");
+			printf("   -q [--quiet]    No stdout output.\n");
+			printf("   \n");
+			printf("   == image options ==\n");
+			printf("   --nowater       Forcing not to draw water. Drawing heghtmap instead.\n");
+			printf("   --nobuildings   Forcing not to draw buildings\n");
+			printf("   --nooil         Forcing not to draw oil rigs\n");
+			printf("   --nocliff       Forcing not to draw cliff tiles as red\n");
+			printf("   --singlecolorwater Forcing to draw water as always blue\n");
+			printf("   -z <level>      Overrides zoom level of image.\n");
+			printf("   \n");
+			printf("   == debug options ==\n");
+			printf("   -v              Enables verbose logging level 1. (Usefull info)\n");
+			printf("   -vv             Enables verbose logging level 2. (Maaaany of info)\n");
+			printf("   -vvv            Enables verbose logging level 3. (Just spam)\n");
+			printf("   -vvvv           Enables verbose logging level 4. (Dont use this)\n");
+			printf("   -v999           Enables vrbos- ripping your terminal history with spam.\n");
 			printf("\n");
 			exit(0);
 		}
@@ -98,9 +101,6 @@ int ArgParse(int argc, char **argv) {
 	}
 	return 0;
 }
-
-
-
 
 int main(int argc, char** argv)
 {
