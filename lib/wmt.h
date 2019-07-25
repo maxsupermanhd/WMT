@@ -125,6 +125,12 @@ struct WZmap {
 	char **filenames = NULL;
 	zip_t *zip;
 	int totalentries = -1;
+	
+	char createdon[128];
+	char createddate[128];
+	char createdauthor[128];
+	char createdlicense[128];
+	bool haveadditioninfo = false;
 
 	unsigned int ttypver = -1;
 	unsigned int ttypnum = -1;

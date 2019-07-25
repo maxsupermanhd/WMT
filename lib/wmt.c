@@ -304,7 +304,6 @@ bool WMT_ReadTTypesFile(WZmap *map) {
 
 bool WMT_ReadGameMapFile(WZmap *map) {
 	bool success = true;
-	void *mapcontents;
 	int indexgamemap = WMT_SearchFilename(map->filenames, map->totalentries, (char*)"game.map", 1);
 	int openstatus;
 	if(indexgamemap==-1) {
@@ -323,7 +322,7 @@ bool WMT_ReadGameMapFile(WZmap *map) {
 		success = false;
 	} else {
 		//size_t mapfilesize = zip_entry_size(map->zip);
-		void *mapcontents;
+		void *mapcontents = NULL;
 		size_t readlen;
 		ssize_t readed = zip_entry_read(map->zip, &mapcontents, &readlen);
 		if(readed==-1) {
@@ -388,6 +387,135 @@ bool WMT_ReadGameMapFile(WZmap *map) {
 	return success;
 }
 
+void WMT_ReadAddonLev(WZmap *map) {
+	bool success = true;
+	char addonpath[MAX_PATH_LEN];
+	for(int i=0; i<MAX_PATH_LEN; i++)
+		addonpath[i]='0';
+	snprintf(addonpath, MAX_PATH_LEN, "%s.addon.lev", map->mapname);
+	if(zip_entry_open(map->zip, addonpath)<0) {
+		log_fatal("Failed to open addon.lev file!");
+		map->errorcode = -4;
+		success = false;
+	} else {
+		void *addoncontents;
+		size_t readlen;
+		ssize_t readed = zip_entry_read(map->zip, &addoncontents, &readlen);
+		if(readed==-1) {
+			log_warn("Zip file reading error!");
+		}
+		FILE* addonf = fmemopen(addoncontents, readlen, "r");
+		if(addonf==NULL) {
+			log_fatal("Error opening file from memory!");
+			success = false;
+		} else {
+			char addonhead[4] = { '0', '0', '0', '\0'};
+			if(!WMT_ReadFromFile(addonf, sizeof(char), 3, &addonhead))
+				log_error("Failed to read ttypes header!");
+			else {
+				if(addonhead[0] != '/' || addonhead[1] != '/' || addonhead[2] != ' ')
+					log_warn("Addon file does not contain created info!!");
+				else {
+					char addonbuff = 2;
+					char addonwrite[128];
+					for(int i=0; i<128; i++)
+						addonwrite[i] = 0;
+					int addoncounter = 0;
+					do {
+						if(!WMT_ReadFromFile(addonf, sizeof(char), 1, &addonbuff)) {
+							log_error("Failed to read from memory!");
+							break;
+						} else {
+							addonwrite[addoncounter] = addonbuff;
+							addoncounter++;
+						}
+					} while (addonbuff != '\n');
+					for(int i=0; i<128; i++)
+						map->createdon[i] = addonwrite[i];
+				}
+			}
+			if(!WMT_ReadFromFile(addonf, sizeof(char), 3, &addonhead))
+				log_error("Failed to read ttypes header!");
+			else {
+				if(addonhead[0] != '/' || addonhead[1] != '/' || addonhead[2] != ' ')
+					log_warn("Addon file does not contain created info!!");
+				else {
+					char addonbuff = 2;
+					char addonwrite[128];
+					for(int i=0; i<128; i++)
+						addonwrite[i] = 0;
+					int addoncounter = 0;
+					do {
+						if(!WMT_ReadFromFile(addonf, sizeof(char), 1, &addonbuff)) {
+							log_error("Failed to read from memory!");
+							break;
+						} else {
+							addonwrite[addoncounter] = addonbuff;
+							addoncounter++;
+						}
+					} while (addonbuff != '\n');
+					for(int i=0; i<128; i++)
+						map->createddate[i] = addonwrite[i];
+				}
+			}
+			if(!WMT_ReadFromFile(addonf, sizeof(char), 3, &addonhead))
+				log_error("Failed to read ttypes header!");
+			else {
+				if(addonhead[0] != '/' || addonhead[1] != '/' || addonhead[2] != ' ')
+					log_warn("Addon file does not contain created info!!");
+				else {
+					char addonbuff = 2;
+					char addonwrite[128];
+					for(int i=0; i<128; i++)
+						addonwrite[i] = 0;
+					int addoncounter = 0;
+					do {
+						if(!WMT_ReadFromFile(addonf, sizeof(char), 1, &addonbuff)) {
+							log_error("Failed to read from memory!");
+							break;
+						} else {
+							addonwrite[addoncounter] = addonbuff;
+							addoncounter++;
+						}
+					} while (addonbuff != '\n');
+					for(int i=0; i<128; i++)
+						map->createdauthor[i] = addonwrite[i];
+				}
+			}
+			if(!WMT_ReadFromFile(addonf, sizeof(char), 3, &addonhead))
+				log_error("Failed to read ttypes header!");
+			else {
+				if(addonhead[0] != '/' || addonhead[1] != '/' || addonhead[2] != ' ')
+					log_warn("Addon file does not contain created info!!");
+				else {
+					char addonbuff = 2;
+					char addonwrite[128];
+					for(int i=0; i<128; i++)
+						addonwrite[i] = 0;
+					int addoncounter = 0;
+					do {
+						if(!WMT_ReadFromFile(addonf, sizeof(char), 1, &addonbuff)) {
+							log_error("Failed to read from memory!");
+							break;
+						} else {
+							addonwrite[addoncounter] = addonbuff;
+							addoncounter++;
+						}
+					} while (addonbuff != '\n');
+					for(int i=0; i<128; i++)
+						map->createdlicense[i] = addonwrite[i];
+				}
+			}
+			map->haveadditioninfo = true;
+			fclose(addonf);
+		}
+		free(addoncontents);
+		addoncontents = NULL;
+		zip_entry_close(map->zip);
+	}
+	return;
+}
+
 bool WMT_ReadStructs(WZmap *map) {
 	bool success = true;
 	void *structcontents;
@@ -443,41 +571,75 @@ bool WMT_ReadStructs(WZmap *map) {
 				
 				
 				for(unsigned int structnum = 0; structnum<map->numStructures; structnum++) {
-					WMT_ReadFromFile(structf, sizeof(char), nameLength, &map->structs[structnum].name);
-					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].id);
-					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].x);
-					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].y);
-					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].z);
-					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].direction);
-					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].player);
-					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].infire);
-					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].burnStart);
-					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].burnDamage);
-					WMT_ReadFromFile(structf, sizeof(uint8_t), 1, &map->structs[structnum].structPadding);
-					WMT_ReadFromFile(structf, sizeof(uint8_t), 1, &map->structs[structnum].structPadding1);
-					WMT_ReadFromFile(structf, sizeof(uint8_t), 1, &map->structs[structnum].structPadding2);
-					WMT_ReadFromFile(structf, sizeof(uint8_t), 1, &map->structs[structnum].structPadding3);
-					WMT_ReadFromFile(structf, sizeof(int32_t), 1, &map->structs[structnum].buildPoints);
-					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].body);
-					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].armour);
-					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].resistance);
-					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].dummy);
-					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].subjectInc);
-					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].timeStarted);
-					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].output);
-					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].capacity);
-					WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].quantity);
+					if(!WMT_ReadFromFile(structf, sizeof(char), nameLength, &map->structs[structnum].name))
+						log_error("Failed to read struct name!");
+					if(!WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].id))
+						log_error("Failed to read struct id!");
+					if(!WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].x))
+						log_error("Failed to read struct x!");
+					if(!WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].y))
+						log_error("Failed to read struct y!");
+					if(!WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].z))
+						log_error("Failed to read struct z!");
+					if(!WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].direction))
+						log_error("Failed to read struct direction!");
+					if(!WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].player))
+						log_error("Failed to read struct player!");
+					if(!WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].infire))
+						log_error("Failed to read struct in fire!");
+					if(!WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].burnStart))
+						log_error("Failed to read struct start burn!");
+					if(!WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].burnDamage))
+						log_error("Failed to read struct burn damage!");
+					if(!WMT_ReadFromFile(structf, sizeof(uint8_t), 1, &map->structs[structnum].structPadding))
+						log_error("Failed to read struct padding!");
+					if(!WMT_ReadFromFile(structf, sizeof(uint8_t), 1, &map->structs[structnum].structPadding1))
+						log_error("Failed to read struct padding (1)!");
+					if(!WMT_ReadFromFile(structf, sizeof(uint8_t), 1, &map->structs[structnum].structPadding2))
+						log_error("Failed to read struct padding (2)!");
+					if(!WMT_ReadFromFile(structf, sizeof(uint8_t), 1, &map->structs[structnum].structPadding3))
+						log_error("Failed to read struct padding (3)!");
+					if(!WMT_ReadFromFile(structf, sizeof(int32_t), 1, &map->structs[structnum].buildPoints))
+						log_error("Failed to read struct build points!");
+					if(!WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].body))
+						log_error("Failed to read struct body!");
+					if(!WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].armour))
+						log_error("Failed to read struct armour!");
+					if(!WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].resistance))
+						log_error("Failed to read struct resistance!");
+					if(!WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].dummy))
+						log_error("Failed to read some dummy var!");
+					if(!WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].subjectInc))
+						log_error("Failed to read struct subject inc!");
+					if(!WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].timeStarted))
+						log_error("Failed to read struct time started!");
+					if(!WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].output))
+						log_error("Failed to read struct output?!");
+					if(!WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].capacity))
+						log_error("Failed to read struct capacity!");
+					if(!WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].quantity))
+						log_error("Failed to read struct quantity!");
 					if(map->structVersion >= 12) {
-						WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].factoryInc);
-						WMT_ReadFromFile(structf, sizeof(uint8_t), 1, &map->structs[structnum].loopsPerformed);
-						WMT_ReadFromFile(structf, sizeof(uint8_t), 1, &map->structs[structnum].structPadding4);
-						WMT_ReadFromFile(structf, sizeof(uint8_t), 1, &map->structs[structnum].structPadding5);
-						WMT_ReadFromFile(structf, sizeof(uint8_t), 1, &map->structs[structnum].structPadding6);
-						WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].powerAccrued);
-						WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].dummy2);
-						WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].droidTimeStarted);
-						WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].timeToBuild);
-						WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].timeStartHold);
+						if(!WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].factoryInc))
+							log_error("Failed to read struct factory inc!");
+						if(!WMT_ReadFromFile(structf, sizeof(uint8_t), 1, &map->structs[structnum].loopsPerformed))
+							log_error("Failed to read struct loops!");
+						if(!WMT_ReadFromFile(structf, sizeof(uint8_t), 1, &map->structs[structnum].structPadding4))
+							log_error("Failed to read struct padding (4)!");
+						if(!WMT_ReadFromFile(structf, sizeof(uint8_t), 1, &map->structs[structnum].structPadding5))
+							log_error("Failed to read struct padding (5)!");
+						if(!WMT_ReadFromFile(structf, sizeof(uint8_t), 1, &map->structs[structnum].structPadding6))
+							log_error("Failed to read struct padding (6)!");
+						if(!WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].powerAccrued))
+							log_error("Failed to read struct power!");
+						if(!WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].dummy2))
+							log_error("Failed to read another dummy var!");
+						if(!WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].droidTimeStarted))
+							log_error("Failed to read struct 'droid time started'!");
+						if(!WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].timeToBuild))
+							log_error("Failed to read struct time to build!");
+						if(!WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->structs[structnum].timeStartHold))
+							log_error("Failed to read struct time start hold!");
 					}
 					if(map->structVersion >= 14) {
 						size_t freadret = fread(&map->structs[structnum].visibility, 8, 1, structf);
@@ -641,6 +803,7 @@ void WMT_ReadMap(char* filename, WZmap *map) {
 		map->valid=false;
 		return;
 	}
+	WMT_ReadAddonLev(map);
 	log_info("Map reading done!");
 	return;
 }
