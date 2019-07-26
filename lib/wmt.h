@@ -157,7 +157,7 @@ struct WZmap {
 	
 	~WZmap() {
 		if(fields_clean) {
-			printf("Prevented double clean!\n");
+			log_info("Prevented double clean!\n");
 			return;
 		}
 		free(mapheight);

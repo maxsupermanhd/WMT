@@ -16,9 +16,11 @@ bool picturezoomenabled = false;
 unsigned short picturezoom = 1;
 bool OpenWithFeh=false;
 struct ImageOptions options;
+bool PrintInfo = false;
 
 
 int ArgParse(int argc, char **argv) {
+	wzmappath = argv[1];
 	for(int argcounter=1; argcounter<argc; argcounter++) {
 		if(DebugPrintLevel > 2)
 			printf("Scanning arg %d %s\n", argcounter, argv[argcounter]);
@@ -68,6 +70,8 @@ int ArgParse(int argc, char **argv) {
 			log_set_quiet(1);
 		} else if(WMT_equalstr(argv[argcounter], "--quiet")) {
 			log_set_quiet(1);
+		} else if(WMT_equalstr(argv[argcounter], "--print")||WMT_equalstr(argv[argcounter], "-p")) {
+			PrintInfo = true;
 		} else if(WMT_equalstr(argv[argcounter], "--help")||WMT_equalstr(argv[argcounter], "-h")) {
 			printf("   Usage: %s <map-path> [args]\n", argv[0]);
 			printf("   Available args:\n");
@@ -78,6 +82,7 @@ int ArgParse(int argc, char **argv) {
 			printf("   --version       Show version and exit.\n");
 			printf("   -feh            Open output image with feh. (need feh to make this work)\n");
 			printf("   -q [--quiet]    No stdout output.\n");
+			printf("   -p [--print]    Print info to stdout.\n");
 			printf("   \n");
 			printf("   == image options ==\n");
 			printf("   --nowater       Forcing not to draw water. Drawing heghtmap instead.\n");
@@ -96,8 +101,6 @@ int ArgParse(int argc, char **argv) {
 			printf("\n");
 			exit(0);
 		}
-		else
-			wzmappath = argv[argcounter];
 	}
 	return 0;
 }
@@ -132,6 +135,35 @@ int main(int argc, char** argv)
 					log_debug("System call returned %d", retval);
 				}
 			}
+		}
+		if(PrintInfo) {
+			printf("Map  %s\n", buildmap.mapname);
+			printf("Path %s\n", buildmap.path);
+			printf("ttypes version %d\n", buildmap.ttypver);
+			printf("ttypes count   %d\n", buildmap.ttypnum);
+			printf("struct version %d\n", buildmap.structVersion);
+			printf("struct count   %d\n", buildmap.numStructures);
+			printf("map    version %d\n", buildmap.mapver);
+			printf("map    size    %dx%d\n", buildmap.maptotalx, buildmap.maptotaly);
+			printf("featur version %d\n", buildmap.featureVersion);
+			printf("featur count   %d\n", buildmap.featuresCount);
+			if(buildmap.haveadditioninfo)
+			{
+				printf("%s", buildmap.createdon);
+				printf("%s", buildmap.createddate);
+				printf("%s", buildmap.createdauthor);
+				printf("%s", buildmap.createdlicense);
+			}
+			int scavcount = 0;
+			for(uint i=0; i<buildmap.numStructures; i++)
+				if(buildmap.structs[i].player == 10)
+					scavcount++;
+			if(scavcount < 10)
+				printf("no scav\n");
+			if(scavcount >= 10 && scavcount < 50)
+				printf("few scav");
+			if(scavcount >= 50)
+				printf("a lot of scavs"); 
 		}
 		free(outname);
 		exit(buildmap.errorcode);

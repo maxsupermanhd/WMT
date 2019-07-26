@@ -388,15 +388,21 @@ bool WMT_ReadGameMapFile(WZmap *map) {
 }
 
 void WMT_ReadAddonLev(WZmap *map) {
-	bool success = true;
 	char addonpath[MAX_PATH_LEN];
 	for(int i=0; i<MAX_PATH_LEN; i++)
 		addonpath[i]='0';
-	snprintf(addonpath, MAX_PATH_LEN, "%s.addon.lev", map->mapname);
-	if(zip_entry_open(map->zip, addonpath)<0) {
+	int opened = 0;
+	snprintf(addonpath, MAX_PATH_LEN, "%s.xplayers.lev", map->mapname);
+	opened = zip_entry_open(map->zip, addonpath);
+	if(opened < 0) {
+		for(int i=0; i<MAX_PATH_LEN; i++)
+			addonpath[i]='0';
+		snprintf(addonpath, MAX_PATH_LEN, "%s.addon.lev", map->mapname);
+		opened = zip_entry_open(map->zip, addonpath);
+	}
+	if(opened<0) {
 		log_fatal("Failed to open addon.lev file!");
 		map->errorcode = -4;
-		success = false;
 	} else {
 		void *addoncontents;
 		size_t readlen;
@@ -407,7 +413,6 @@ void WMT_ReadAddonLev(WZmap *map) {
 		FILE* addonf = fmemopen(addoncontents, readlen, "r");
 		if(addonf==NULL) {
 			log_fatal("Error opening file from memory!");
-			success = false;
 		} else {
 			char addonhead[4] = { '0', '0', '0', '\0'};
 			if(!WMT_ReadFromFile(addonf, sizeof(char), 3, &addonhead))
@@ -518,7 +523,6 @@ void WMT_ReadAddonLev(WZmap *map) {
 
 bool WMT_ReadStructs(WZmap *map) {
 	bool success = true;
-	void *structcontents;
 	int indexstructs = WMT_SearchFilename(map->filenames, map->totalentries, (char*)"struct.bjo");
 	if(indexstructs == -1) {
 		log_fatal("Failed to find struct.bjo!");

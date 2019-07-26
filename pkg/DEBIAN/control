@@ -1,5 +1,5 @@
 Package: WMT
-Version: 1.3-1
+Version: 1.4-1
 Section: utils
 Depends: libstdc++6, libgcc1, libc6
 Architecture: amd64
