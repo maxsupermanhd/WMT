@@ -109,12 +109,11 @@ int main(int argc, char** argv)
 {
 	log_set_level(LOG_WARN);
 	ArgParse(argc, argv);
-
 	if(argc > 1) {
 		struct WZmap buildmap;
 		WMT_ReadMap(wzmappath, &buildmap);
 		if(buildmap.valid == false) {
-			log_fatal("Error building info for file %s!", argv[1]);
+			log_fatal("Error building info for file %s!", wzmappath);
 			exit(-1);
 		}
 		char *outname;
@@ -137,18 +136,19 @@ int main(int argc, char** argv)
 			}
 		}
 		if(PrintInfo) {
-			printf("Map  %s\n", buildmap.mapname);
-			printf("Path %s\n", buildmap.path);
-			printf("ttypes version %d\n", buildmap.ttypver);
-			printf("ttypes count   %d\n", buildmap.ttypnum);
-			printf("struct version %d\n", buildmap.structVersion);
-			printf("struct count   %d\n", buildmap.numStructures);
-			printf("map    version %d\n", buildmap.mapver);
-			printf("map    size    %dx%d\n", buildmap.maptotalx, buildmap.maptotaly);
-			printf("featur version %d\n", buildmap.featureVersion);
-			printf("featur count   %d\n", buildmap.featuresCount);
+			printf("==== Report for: %s ====\n", buildmap.mapname);
+			printf("Path             %s\n", buildmap.path);
+			printf("ttypes   version %d\n", buildmap.ttypver);
+			printf("ttypes   count   %d\n", buildmap.ttypnum);
+			printf("structs  version %d\n", buildmap.structVersion);
+			printf("structs  count   %d\n", buildmap.numStructures);
+			printf("map      version %d\n", buildmap.mapver);
+			printf("map      size    %d x %d\n", buildmap.maptotalx, buildmap.maptotaly);
+			printf("features version %d\n", buildmap.featureVersion);
+			printf("features count   %d\n", buildmap.featuresCount);
 			if(buildmap.haveadditioninfo)
 			{
+				printf("=Archive info=\n");
 				printf("%s", buildmap.createdon);
 				printf("%s", buildmap.createddate);
 				printf("%s", buildmap.createdauthor);
@@ -158,17 +158,24 @@ int main(int argc, char** argv)
 			for(uint i=0; i<buildmap.numStructures; i++)
 				if(buildmap.structs[i].player == 10)
 					scavcount++;
+			printf("Scavengers: ");
 			if(scavcount < 10)
-				printf("no scav\n");
+				printf("no (%d)\n", scavcount);
 			if(scavcount >= 10 && scavcount < 50)
-				printf("few scav");
+				printf("few (%d)\n", scavcount);
 			if(scavcount >= 50)
-				printf("a lot of scavs"); 
+				printf("a lot (%d)\n", scavcount);
 			int oilcount = 0;
 			for(uint i=0; i<buildmap.featuresCount; i++)
 				if(WMT_equalstr(buildmap.features[i].name, (char*)"OilResource"))
 					oilcount++;
-			printf("oil            %d\n", oilcount);
+			printf("Oil rigs         %d\n", oilcount);
+			int barrelscount = 0;
+			for(uint i=0; i<buildmap.featuresCount; i++)
+				if(WMT_equalstr(buildmap.features[i].name, (char*)"OilDrum"))
+					barrelscount++;
+			if(barrelscount > 0)
+				printf("Oil drums        %d\n", barrelscount);
 		}
 		free(outname);
 		exit(buildmap.errorcode);
