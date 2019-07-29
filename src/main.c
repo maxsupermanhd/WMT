@@ -166,7 +166,7 @@ int main(int argc, char** argv)
 				printf("a lot of scavs"); 
 			int oilcount = 0;
 			for(uint i=0; i<buildmap.featuresCount; i++)
-				if(buildmap.features[i].name == "OilResource")
+				if(WMT_equalstr(buildmap.features[i].name, (char*)"OilResource"))
 					oilcount++;
 			printf("oil            %d\n", oilcount);
 		}
