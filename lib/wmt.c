@@ -388,17 +388,17 @@ bool WMT_ReadGameMapFile(WZmap *map) {
 }
 
 void WMT_ReadAddonLev(WZmap *map) {
-	char addonpath[MAX_PATH_LEN];
-	for(int i=0; i<MAX_PATH_LEN; i++)
-		addonpath[i]='0';
 	int opened = 0;
-	snprintf(addonpath, MAX_PATH_LEN, "%s.xplayers.lev", map->mapname);
-	opened = zip_entry_open(map->zip, addonpath);
+	int index = 0;
+	for(int i=0; i<map->totalentries; i++)
+		if(strstr(map->filenames[i], ".xplayers.lev") != NULL)
+			index = i;
+	opened = zip_entry_openbyindex(map->zip, index);
 	if(opened < 0) {
-		for(int i=0; i<MAX_PATH_LEN; i++)
-			addonpath[i]='0';
-		snprintf(addonpath, MAX_PATH_LEN, "%s.addon.lev", map->mapname);
-		opened = zip_entry_open(map->zip, addonpath);
+		for(int i=0; i<map->totalentries; i++)
+			if(strstr(map->filenames[i], ".addon.lev") != NULL)
+				index = i;
+		opened = zip_entry_openbyindex(map->zip, index);
 	}
 	if(opened<0) {
 		log_fatal("Failed to open addon.lev file!");
