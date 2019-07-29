@@ -12,7 +12,9 @@ Tool for viewing and generating previews of Warzone2100 maps.
 
 1. Install deps.
  That can be done with `$ sudo apt-get install gcc libstdc++-6-dev lib32gcc-7-dev libc6-dev make`
-2. Make `$ make`
+2. Clone this repo `$ git clone https://github.com/maxsupermanhd/WMT.git`
+3. Go to directory `$ cd WMT`
+4. Make `$ make`
 
 # How to use
 
