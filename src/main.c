@@ -17,6 +17,7 @@ unsigned short picturezoom = 1;
 bool OpenWithFeh=false;
 struct ImageOptions options;
 bool PrintInfo = false;
+bool AnalyzeMap = false;
 
 
 int ArgParse(int argc, char **argv) {
@@ -66,6 +67,8 @@ int ArgParse(int argc, char **argv) {
 			options.DrawOilRigs=false;
 		} else if(WMT_equalstr(argv[argcounter], "--nocliff")) {
 			options.DrawCliffsAsRed=false;
+		} else if(WMT_equalstr(argv[argcounter], "--analyze")) {
+			AnalyzeMap = true;
 		} else if(WMT_equalstr(argv[argcounter], "-q")) {
 			log_set_quiet(1);
 		} else if(WMT_equalstr(argv[argcounter], "--quiet")) {
@@ -176,6 +179,108 @@ int main(int argc, char** argv)
 					barrelscount++;
 			if(barrelscount > 0)
 				printf("Oil drums        %d\n", barrelscount);
+		}
+		if(AnalyzeMap) {
+			printf("Analyzing map %s\n", buildmap.mapname);
+			bool DetectedPlayers[10];
+			int PlayerBuildings[10];
+			int FactoriesPerPlayer[10];
+			int CyborgFactoriesPerPlayer[10];
+			int VtolFactoriesPerPlayer[10];
+			int FactoryModulesPerPlayer[10];
+			int LabsPerPlayer[10];
+			int LabModulesPerPlayer[10];
+			int GeneratorsPerPlayer[10];
+			int GeneratorsModulesPerPlayer[10];
+			bool MapBalanced = true;
+			for(int i=0; i<10; i++) {
+				DetectedPlayers[i] = false;
+				PlayerBuildings[i] = 0;
+				FactoriesPerPlayer[i] = 0;
+				CyborgFactoriesPerPlayer[i] = 0;
+				VtolFactoriesPerPlayer[i] = 0;
+				FactoryModulesPerPlayer[i] = 0;
+				LabsPerPlayer[i] = 0;
+				LabModulesPerPlayer[i] = 0;
+				GeneratorsPerPlayer[i] = 0;
+				GeneratorsModulesPerPlayer[i] = 0;
+			}
+			for(int i=0; i<buildmap.numStructures; i++) {
+				DetectedPlayers[buildmap.structs[i].player] = true;
+				PlayerBuildings[buildmap.structs[i].player]++;
+				if(WMT_equalstr(buildmap.structs[i].name, "A0LightFactory"))
+					FactoriesPerPlayer[buildmap.structs[i].player]++;
+				else if(WMT_equalstr(buildmap.structs[i].name, "A0CyborgFactory"))
+					CyborgFactoriesPerPlayer[buildmap.structs[i].player]++;
+				else if(WMT_equalstr(buildmap.structs[i].name, "A0VTolFactory1"))
+					VtolFactoriesPerPlayer[buildmap.structs[i].player]++;
+				else if(WMT_equalstr(buildmap.structs[i].name, "A0FacMod1"))
+					FactoryModulesPerPlayer[buildmap.structs[i].player]++;
+				else if(WMT_equalstr(buildmap.structs[i].name, "A0ResearchFacility"))
+					LabsPerPlayer[buildmap.structs[i].player]++;
+				else if(WMT_equalstr(buildmap.structs[i].name, "A0ResearchModule1"))
+					LabModulesPerPlayer[buildmap.structs[i].player]++;
+				else if(WMT_equalstr(buildmap.structs[i].name, "A0PowerGenerator"))
+					GeneratorsPerPlayer[buildmap.structs[i].player]++;
+				else if(WMT_equalstr(buildmap.structs[i].name, "A0PowMod1"))
+					GeneratorsModulesPerPlayer[buildmap.structs[i].player]++;
+			}
+			printf("Detected players: 1 2 3 4 5 6 7 8 9 10\n");
+			printf("                  ");
+			int DetectedPlayersCount = 0;
+			for(int i=0; i<10; i++)
+				if(DetectedPlayers[i]) {
+					printf("Y ");
+					DetectedPlayersCount++;
+				} else
+					printf("N ");
+			printf("\n");
+			printf("Detected players count: %d\n", DetectedPlayersCount);
+			bool BuildingsCountNotEqual = false;
+			for(int i=0; i<9; i++) {
+				for(int b=i+1; b<10; b++) {
+					if((PlayerBuildings[i] != PlayerBuildings[b]) && DetectedPlayers[i] && DetectedPlayers[b]) {
+						printf("WARNING! Player %d have %d buildings, but player %d have %d!\n", i, PlayerBuildings[i], b, PlayerBuildings[b]);
+						MapBalanced = false;
+						BuildingsCountNotEqual = true;
+					} if((FactoriesPerPlayer[i] != FactoriesPerPlayer[b]) && DetectedPlayers[i] && DetectedPlayers[b]) {
+						printf("WARNING! Player %d have %d factories, but player %d have %d!\n", i, FactoriesPerPlayer[i], b, FactoriesPerPlayer[b]);
+						MapBalanced = false;
+					} if((CyborgFactoriesPerPlayer[i] != CyborgFactoriesPerPlayer[b]) && DetectedPlayers[i] && DetectedPlayers[b]) {
+						printf("WARNING! Player %d have %d cyborg factories, but player %d have %d!\n", i, CyborgFactoriesPerPlayer[i], b, CyborgFactoriesPerPlayer[b]);
+						MapBalanced = false;
+					} if((VtolFactoriesPerPlayer[i] != VtolFactoriesPerPlayer[b]) && DetectedPlayers[i] && DetectedPlayers[b]) {
+						printf("WARNING! Player %d have %d vtol factories, but player %d have %d!\n", i, VtolFactoriesPerPlayer[i], b, VtolFactoriesPerPlayer[b]);
+						MapBalanced = false;
+					} if((FactoryModulesPerPlayer[i] != FactoryModulesPerPlayer[b]) && DetectedPlayers[i] && DetectedPlayers[b]) {
+						printf("WARNING! Player %d have %d factory modules, but player %d have %d!\n", i, FactoryModulesPerPlayer[i], b, FactoryModulesPerPlayer[b]);
+						MapBalanced = false;
+					} if((LabsPerPlayer[i] != LabsPerPlayer[b]) && DetectedPlayers[i] && DetectedPlayers[b]) {
+						printf("WARNING! Player %d have %d labs, but player %d have %d!\n", i, LabsPerPlayer[i], b, LabsPerPlayer[b]);
+						MapBalanced = false;
+					} if((LabModulesPerPlayer[i] != LabModulesPerPlayer[b]) && DetectedPlayers[i] && DetectedPlayers[b]) {
+						printf("WARNING! Player %d have %d lab modules, but player %d have %d!\n", i, LabModulesPerPlayer[i], b, LabModulesPerPlayer[b]);
+						MapBalanced = false;
+					} if((GeneratorsPerPlayer[i] != GeneratorsPerPlayer[b]) && DetectedPlayers[i] && DetectedPlayers[b]) {
+						printf("WARNING! Player %d have %d generators, but player %d have %d!\n", i, GeneratorsPerPlayer[i], b, GeneratorsPerPlayer[b]);
+						MapBalanced = false;
+					} if((GeneratorsModulesPerPlayer[i] != GeneratorsModulesPerPlayer[b]) && DetectedPlayers[i] && DetectedPlayers[b]) {
+						printf("WARNING! Player %d have %d generator modules, but player %d have %d!\n", i, GeneratorsModulesPerPlayer[i], b, GeneratorsModulesPerPlayer[b]);
+						MapBalanced = false;
+					}
+				}
+			}
+			if(!MapBalanced)
+				printf("WARNING! Map not balanced! Someone have odds!\n");
+			if(!BuildingsCountNotEqual)
+				printf("Buildings per player: %d\n", PlayerBuildings[0]);
+			else {
+				int BuildingsAverage = 0;
+				for(int i=0; i<DetectedPlayersCount; i++)
+					BuildingsAverage+=PlayerBuildings[i];
+				BuildingsAverage = BuildingsAverage/DetectedPlayersCount;
+				printf("Average buildings count: %d\n", BuildingsAverage);
+			}
 		}
 		free(outname);
 		exit(buildmap.errorcode);
