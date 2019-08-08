@@ -12,6 +12,10 @@
 #define WMT_VERSION "1.5"
 #endif
 
+#ifndef _GNU_SOURCE
+#define _GNU_SOURCE
+#endif
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -28,6 +32,7 @@
 #include "jfes.h"
 
 #define MAX_PATH_LEN 2048
+
 
 /*#ifndef typename(x)
 #define typename(x) _Generic((x),                                                 \
@@ -177,10 +182,16 @@ struct WZmap {
 			log_info("Prevented double clean!\n");
 			return;
 		}
+		free(mapname);
+		mapname = NULL;
 		free(mapheight);
+		mapheight = NULL;
 		free(filenames);
+		filenames = NULL;
 		free(structs);
+		structs = NULL;
 		free(features);
+		features = NULL;
 		for(int i=0; i<totalentries; i++)
 			free(filenames[i]);
 		zip_entry_close(zip);

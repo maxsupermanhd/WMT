@@ -148,7 +148,8 @@ int WMT_SearchFilename(char** arr, unsigned short sizearr, char* name, short urg
 }
 
 char* WMT_GetMapNameFromFilename(char* filename) {
-	char* fullpath=filename;
+	char* fullpath;
+	if(asprintf(&fullpath, "%s", filename));
 	int fullpathlen=strlen(fullpath);
 	int lastindex=-1;
 	for(int c=0; c<fullpathlen; c++) {
