@@ -193,6 +193,8 @@ int main(int argc, char** argv)
 			int GeneratorsPerPlayer[10];
 			int GeneratorsModulesPerPlayer[10];
 			bool MapBalanced = true;
+			int ScavPlayer = -1;
+			bool ScavDetected = false;
 			for(int i=0; i<10; i++) {
 				DetectedPlayers[i] = false;
 				PlayerBuildings[i] = 0;
@@ -225,20 +227,40 @@ int main(int argc, char** argv)
 				else if(WMT_equalstr(buildmap.structs[i].name, "A0PowMod1"))
 					GeneratorsModulesPerPlayer[buildmap.structs[i].player]++;
 			}
-			printf("Detected players: 1 2 3 4 5 6 7 8 9 10\n");
-			printf("                  ");
 			int DetectedPlayersCount = 0;
 			for(int i=0; i<10; i++)
-				if(DetectedPlayers[i]) {
-					printf("Y ");
+				if(DetectedPlayers[i])
 					DetectedPlayersCount++;
-				} else
+			bool LastPlayerDetected = true;
+			for(int i=0; i<10; i++)
+				if(!DetectedPlayers[i] && LastPlayerDetected) {
+					LastPlayerDetected = false;
+					//printf("Players slots ended on %d\n", i-1);
+				} else if(DetectedPlayers[i] && !LastPlayerDetected) {
+					if(ScavPlayer != -1)
+						printf("WARNING! More scav slots detected!\n");
+					printf("Scav detected on slot %d\n", i);
+					ScavPlayer = i;
+					ScavDetected = true;
+				}
+			printf("Detected players: 0 1 2 3 4 5 6 7 8 9 \n");
+			printf("                  ");
+			for(int i=0; i<10; i++) {
+				if(DetectedPlayers[i])
+					if(i == ScavPlayer && ScavDetected)
+						printf("S ");
+					else
+						printf("Y ");
+				else
 					printf("N ");
+			}
 			printf("\n");
-			printf("Detected players count: %d\n", DetectedPlayersCount);
+			printf("Detected players count: %d\n", ScavDetected ? DetectedPlayersCount-1 : DetectedPlayersCount);
 			bool BuildingsCountNotEqual = false;
 			for(int i=0; i<9; i++) {
 				for(int b=i+1; b<10; b++) {
+					if(i == ScavPlayer || b == ScavPlayer)
+						continue;
 					if((PlayerBuildings[i] != PlayerBuildings[b]) && DetectedPlayers[i] && DetectedPlayers[b]) {
 						printf("WARNING! Player %d have %d buildings, but player %d have %d!\n", i, PlayerBuildings[i], b, PlayerBuildings[b]);
 						MapBalanced = false;
