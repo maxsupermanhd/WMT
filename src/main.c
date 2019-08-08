@@ -42,7 +42,8 @@ int ArgParse(int argc, char **argv) {
 			printf("You better stop reading logs...\n");
 			log_set_level(LOG_TRACE);
 		} else if(WMT_equalstr(argv[argcounter], "--version")) {
-			printf("Version %d\nLog version %s\nUsing miniz.h version 9.1.15\n", WMT_VERSION, LOG_VERSION);
+			printf("Version %s\nLog version %s\nUsing miniz.h version 9.1.15\n", WMT_VERSION, LOG_VERSION);
+			exit(0);
 		} else if(WMT_equalstr(argv[argcounter], "--ignore-free")) {
 			IgnoreFree = true;
 		} else if(WMT_equalstr(argv[argcounter], "-feh")) {
@@ -67,7 +68,7 @@ int ArgParse(int argc, char **argv) {
 			options.DrawOilRigs=false;
 		} else if(WMT_equalstr(argv[argcounter], "--nocliff")) {
 			options.DrawCliffsAsRed=false;
-		} else if(WMT_equalstr(argv[argcounter], "--analyze")) {
+		} else if(WMT_equalstr(argv[argcounter], "--analyze")||WMT_equalstr(argv[argcounter], "-a")) {
 			AnalyzeMap = true;
 		} else if(WMT_equalstr(argv[argcounter], "-q")) {
 			log_set_quiet(1);
@@ -86,6 +87,7 @@ int ArgParse(int argc, char **argv) {
 			printf("   -feh            Open output image with feh. (need feh to make this work)\n");
 			printf("   -q [--quiet]    No stdout output.\n");
 			printf("   -p [--print]    Print info to stdout.\n");
+			printf("   -a [--analyze]  Analyzes map.\n");
 			printf("   \n");
 			printf("   == image options ==\n");
 			printf("   --nowater       Forcing not to draw water. Drawing heghtmap instead.\n");
@@ -207,7 +209,7 @@ int main(int argc, char** argv)
 				GeneratorsPerPlayer[i] = 0;
 				GeneratorsModulesPerPlayer[i] = 0;
 			}
-			for(int i=0; i<buildmap.numStructures; i++) {
+			for(uint i=0; i<buildmap.numStructures; i++) {
 				DetectedPlayers[buildmap.structs[i].player] = true;
 				PlayerBuildings[buildmap.structs[i].player]++;
 				if(WMT_equalstr(buildmap.structs[i].name, "A0LightFactory"))

@@ -9,7 +9,7 @@
 #define WMT_H_INCLUDED
 
 #ifndef WMT_VERSION
-#define WMT_VERSION 0
+#define WMT_VERSION "1.5"
 #endif
 
 #include <stdio.h>
