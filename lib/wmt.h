@@ -58,6 +58,19 @@ char* WMT_WriteImage(struct WZmap *map, bool CustomPath, char* CustomOutputPath,
 
 enum WZtileset { tileset_arizona, tileset_urban, tileset_rockies };
 
+struct WZdroid {
+	char name[128];
+	uint32_t id;
+	uint32_t x;
+	uint32_t y;
+	uint32_t z;
+	uint32_t direction;
+	uint32_t player;
+	bool inFire;
+	uint32_t burnStart;
+	uint32_t burnDamage;
+};
+
 struct WZobject {
 	char name[128];
 	uint32_t id;
@@ -152,6 +165,10 @@ struct WZmap {
 	uint32_t featureVersion;
 	uint32_t featuresCount;
 	WZfeature *features = NULL;
+	
+	uint32_t droidsVersion;
+	uint32_t droidsCount;
+	WZdroid *droids = NULL;
 	
 	bool fields_clean = false;
 	

@@ -752,6 +752,73 @@ bool WMT_ReadFeaturesFile(WZmap *map) {
 	return success;
 }
 
+bool WMT_ReadDroidsFile(WZmap *map) {
+	bool success = true;
+	int indexdint = WMT_SearchFilename(map->filenames, map->totalentries, (char*)"dinit.bjo", 2);
+	int openstatus = zip_entry_openbyindex(map->zip, indexdint);
+	if(openstatus<0) {
+		log_fatal("Opening file by index error! Status %d.", openstatus);
+		map->errorcode = -4;
+		success = false;
+	} else {
+		//size_t featfilesize = zip_entry_size(map->zip);
+		size_t readlen;
+		void *dintcontents;
+		ssize_t readed = zip_entry_read(map->zip, &dintcontents, &readlen);
+		if(readed==-1) {
+			log_fatal("Error reading dinit file!");
+		} else {
+			FILE* dintf = fmemopen(dintcontents, readlen, "r");
+			if(dintf==NULL) {
+				log_fatal("Error opening as file descriptor!");
+				success = false;
+			} else {
+				char dinthead[5] = { '0', '0', '0', '0', '\0'};
+				if(!WMT_ReadFromFile(dintf, sizeof(char), 4, &dinthead))
+					log_error("Failed to read droids file header!");
+				if(dinthead[0] != 'd' ||
+				   dinthead[1] != 'i' ||
+				   dinthead[2] != 'n' ||
+				   dinthead[3] != 't')
+					log_warn("Features file header not \'dint\'!");
+				if(!WMT_ReadFromFile(dintf, sizeof(unsigned int), 1, &map->droidsVersion))
+					log_error("Failed to read droids version!");
+				if(!WMT_ReadFromFile(dintf, sizeof(unsigned int), 1, &map->droidsCount))
+					log_error("Failed to read number of droids!");
+				
+				map->droids = (WZdroid*)malloc(map->droidsCount * sizeof(WZdroid));
+				if(map->droids == NULL) {
+					log_error("Error allocating memory for droids!");
+					map->errorcode = -2;
+					return false;
+				}
+				int nameLength = 60;
+				if(map->droidsVersion <= 19)
+					nameLength = 40;
+				
+				for(uint32_t droidnum = 0; droidnum<map->droidsCount; droidnum++) {
+					WMT_ReadFromFile(dintf, sizeof(char), nameLength, &map->droids[droidnum].name);
+					WMT_ReadFromFile(dintf, sizeof(uint32_t), 1, &map->droids[droidnum].id);
+					WMT_ReadFromFile(dintf, sizeof(uint32_t), 1, &map->droids[droidnum].x);
+					WMT_ReadFromFile(dintf, sizeof(uint32_t), 1, &map->droids[droidnum].y);
+					WMT_ReadFromFile(dintf, sizeof(uint32_t), 1, &map->droids[droidnum].z);
+					WMT_ReadFromFile(dintf, sizeof(uint32_t), 1, &map->droids[droidnum].direction);
+					WMT_ReadFromFile(dintf, sizeof(uint32_t), 1, &map->droids[droidnum].player);
+					WMT_ReadFromFile(dintf, sizeof(uint32_t), 1, &map->droids[droidnum].inFire);
+					WMT_ReadFromFile(dintf, sizeof(uint32_t), 1, &map->droids[droidnum].burnStart);
+					WMT_ReadFromFile(dintf, sizeof(uint32_t), 1, &map->droids[droidnum].burnDamage);
+				}
+				
+				fclose(dintf);
+			}
+			free(dintcontents);
+			dintcontents = NULL;
+		}
+		zip_entry_close(map->zip);
+	}
+	return success;
+}
+
 void WMT_ReadMap(char* filename, WZmap *map) {
 	//struct WZmap map = (struct WZmap)malloc(sizeof(struct WZmap));
 	map->path=filename;
@@ -804,6 +871,11 @@ void WMT_ReadMap(char* filename, WZmap *map) {
 	}
 	if(!WMT_ReadFeaturesFile(map)) {
 		log_fatal("Error reading features file!");
+		map->valid=false;
+		return;
+	}
+	if(!WMT_ReadDroidsFile(map)) {
+		log_fatal("Error reading droid file!");
 		map->valid=false;
 		return;
 	}
