@@ -388,6 +388,8 @@ bool WMT_ReadGameMapFile(WZmap *map) {
 	return success;
 }
 
+
+
 void WMT_ReadAddonLev(WZmap *map) {
 	int opened = 0;
 	int index = 0;
@@ -415,103 +417,61 @@ void WMT_ReadAddonLev(WZmap *map) {
 		if(addonf==NULL) {
 			log_fatal("Error opening file from memory!");
 		} else {
-			char addonhead[4] = { '0', '0', '0', '\0'};
-			if(!WMT_ReadFromFile(addonf, sizeof(char), 3, &addonhead))
-				log_error("Failed to read ttypes header!");
-			else {
-				if(addonhead[0] != '/' || addonhead[1] != '/' || addonhead[2] != ' ')
-					log_warn("Addon file does not contain created info!!");
-				else {
-					char addonbuff = 2;
-					char addonwrite[128];
-					for(int i=0; i<128; i++)
-						addonwrite[i] = 0;
-					int addoncounter = 0;
-					do {
-						if(!WMT_ReadFromFile(addonf, sizeof(char), 1, &addonbuff)) {
-							log_error("Failed to read from memory!");
-							break;
-						} else {
-							addonwrite[addoncounter] = addonbuff;
-							addoncounter++;
-						}
-					} while (addonbuff != '\n');
-					for(int i=0; i<128; i++)
-						map->createdon[i] = addonwrite[i];
+			char* tmpline = NULL;
+			unsigned short linenumber = 0;
+			ssize_t read;
+			size_t len;
+			unsigned int LevelNumber = 0;
+			bool LevelFound=false;
+			while(read = getline(&tmpline, &len, addonf) != -1) {
+				tmpline[strlen(tmpline)-1] = 0;
+				if( (linenumber == 0 || linenumber == 1 || linenumber == 2 || linenumber == 3) &&
+					tmpline[0] == '/' &&
+					tmpline[1] == '/')
+				{
+					switch(linenumber) {
+						case 0:
+						strcpy(map->createdon, tmpline+3);
+						break;
+						case 1:
+						strcpy(map->createddate, tmpline+3);
+						break;
+						case 2:
+						strcpy(map->createdauthor, tmpline+3);
+						break;
+						case 3:
+						strcpy(map->createdlicense, tmpline+3);
+						break;
+						default:
+						log_info("Old map format!");
+						break;
+					}
 				}
-			}
-			if(!WMT_ReadFromFile(addonf, sizeof(char), 3, &addonhead))
-				log_error("Failed to read ttypes header!");
-			else {
-				if(addonhead[0] != '/' || addonhead[1] != '/' || addonhead[2] != ' ')
-					log_warn("Addon file does not contain created info!!");
-				else {
-					char addonbuff = 2;
-					char addonwrite[128];
-					for(int i=0; i<128; i++)
-						addonwrite[i] = 0;
-					int addoncounter = 0;
-					do {
-						if(!WMT_ReadFromFile(addonf, sizeof(char), 1, &addonbuff)) {
-							log_error("Failed to read from memory!");
-							break;
-						} else {
-							addonwrite[addoncounter] = addonbuff;
-							addoncounter++;
-						}
-					} while (addonbuff != '\n');
-					for(int i=0; i<128; i++)
-						map->createddate[i] = addonwrite[i];
+				else
+				{
+					log_info("Parsing \"%s\"", tmpline);
+					if(strstr(tmpline, "level") == tmpline) {
+						log_info("Level found!");
+						LevelNumber++;
+						strcpy(map->levels[LevelNumber-1].name, tmpline+8);
+					}
+					if(strstr(tmpline, "players") == tmpline) {
+						log_info("Players found!");
+						map->levels[LevelNumber-1].players = atoi(tmpline+8);
+					}
+					if(strstr(tmpline, "type") == tmpline) {
+						log_info("Type found!");
+						map->levels[LevelNumber-1].type = atoi(tmpline+8);
+					}
+					if(strstr(tmpline, "dataset") == tmpline) {
+						log_info("Level found!");
+						strcpy(map->levels[LevelNumber-1].dataset, tmpline+8);
+					}
 				}
+				linenumber++;
 			}
-			if(!WMT_ReadFromFile(addonf, sizeof(char), 3, &addonhead))
-				log_error("Failed to read ttypes header!");
-			else {
-				if(addonhead[0] != '/' || addonhead[1] != '/' || addonhead[2] != ' ')
-					log_warn("Addon file does not contain created info!!");
-				else {
-					char addonbuff = 2;
-					char addonwrite[128];
-					for(int i=0; i<128; i++)
-						addonwrite[i] = 0;
-					int addoncounter = 0;
-					do {
-						if(!WMT_ReadFromFile(addonf, sizeof(char), 1, &addonbuff)) {
-							log_error("Failed to read from memory!");
-							break;
-						} else {
-							addonwrite[addoncounter] = addonbuff;
-							addoncounter++;
-						}
-					} while (addonbuff != '\n');
-					for(int i=0; i<128; i++)
-						map->createdauthor[i] = addonwrite[i];
-				}
-			}
-			if(!WMT_ReadFromFile(addonf, sizeof(char), 3, &addonhead))
-				log_error("Failed to read ttypes header!");
-			else {
-				if(addonhead[0] != '/' || addonhead[1] != '/' || addonhead[2] != ' ')
-					log_warn("Addon file does not contain created info!!");
-				else {
-					char addonbuff = 2;
-					char addonwrite[128];
-					for(int i=0; i<128; i++)
-						addonwrite[i] = 0;
-					int addoncounter = 0;
-					do {
-						if(!WMT_ReadFromFile(addonf, sizeof(char), 1, &addonbuff)) {
-							log_error("Failed to read from memory!");
-							break;
-						} else {
-							addonwrite[addoncounter] = addonbuff;
-							addoncounter++;
-						}
-					} while (addonbuff != '\n');
-					for(int i=0; i<128; i++)
-						map->createdlicense[i] = addonwrite[i];
-				}
-			}
+			map->levelsfound = LevelNumber;
+			free(tmpline);
 			map->haveadditioninfo = true;
 			fclose(addonf);
 		}

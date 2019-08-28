@@ -151,13 +151,20 @@ int main(int argc, char** argv)
 			printf("map      size    %d x %d\n", buildmap.maptotalx, buildmap.maptotaly);
 			printf("features version %d\n", buildmap.featureVersion);
 			printf("features count   %d\n", buildmap.featuresCount);
+			printf("=Level info=\n");
 			if(buildmap.haveadditioninfo)
 			{
-				printf("=Archive info=\n");
-				printf("%s", buildmap.createdon);
-				printf("%s", buildmap.createddate);
-				printf("%s", buildmap.createdauthor);
-				printf("%s", buildmap.createdlicense);
+				printf("%s\n", buildmap.createdon);
+				printf("%s\n", buildmap.createddate);
+				printf("%s\n", buildmap.createdauthor);
+				printf("%s\n", buildmap.createdlicense);
+			}
+			printf("= Levels = (%d)\n", buildmap.levelsfound);
+			for(int i=0; i<buildmap.levelsfound; i++) {
+				printf("Level %s\n", buildmap.levels[i].name);
+				printf("Players %d\n", buildmap.levels[i].players);
+				printf("Type %d\n", buildmap.levels[i].type);
+				printf("Dataset %s\n", buildmap.levels[i].dataset);
 			}
 			int scavcount = 0;
 			for(uint i=0; i<buildmap.numStructures; i++)

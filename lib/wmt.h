@@ -133,6 +133,13 @@ struct WZfeature {
 	uint32_t burnDamage;
 };
 
+struct WZlevel {
+	char name[128];
+	unsigned short players = 0;
+	unsigned short type = 0;
+	char dataset[128];
+};
+
 struct WZmap {
 	char* path;
 	char* mapname;
@@ -149,6 +156,8 @@ struct WZmap {
 	char createdauthor[128];
 	char createdlicense[128];
 	bool haveadditioninfo = false;
+	unsigned int levelsfound = 0;
+	WZlevel levels[64];
 
 	unsigned int ttypver = -1;
 	unsigned int ttypnum = -1;
