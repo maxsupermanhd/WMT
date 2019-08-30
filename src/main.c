@@ -18,6 +18,7 @@ bool OpenWithFeh=false;
 struct ImageOptions options;
 bool PrintInfo = false;
 bool AnalyzeMap = false;
+bool DryRun = false;
 
 
 int ArgParse(int argc, char **argv) {
@@ -74,6 +75,8 @@ int ArgParse(int argc, char **argv) {
 			log_set_quiet(1);
 		} else if(WMT_equalstr(argv[argcounter], "--quiet")) {
 			log_set_quiet(1);
+		} else if(WMT_equalstr(argv[argcounter], "--dry")) {
+			DryRun = true;
 		} else if(WMT_equalstr(argv[argcounter], "--print")||WMT_equalstr(argv[argcounter], "-p")) {
 			PrintInfo = true;
 		} else if(WMT_equalstr(argv[argcounter], "--help")||WMT_equalstr(argv[argcounter], "-h")) {
@@ -96,6 +99,7 @@ int ArgParse(int argc, char **argv) {
 			printf("   --nocliff       Forcing not to draw cliff tiles as red\n");
 			printf("   --singlecolorwater Forcing to draw water as always blue\n");
 			printf("   -z <level>      Overrides zoom level of image.\n");
+			printf("   --dry           Don\'t draw any images.\n");
 			printf("   \n");
 			printf("   == debug options ==\n");
 			printf("   -v              Enables verbose logging level 1. (Usefull info)\n");
@@ -117,26 +121,29 @@ int main(int argc, char** argv)
 	if(argc > 1) {
 		struct WZmap buildmap;
 		WMT_ReadMap(wzmappath, &buildmap);
+		//WMT_WriteMap(&buildmap);
 		if(buildmap.valid == false) {
 			log_fatal("Error building info for file %s!", wzmappath);
 			exit(-1);
 		}
-		char *outname;
-		outname = WMT_WriteImage(&buildmap, CustomOutputPathFlag, CustomOutputPath, options);
-		printf("Image written to: %s\n", outname);
-		if(OpenWithFeh) {
-			if(outname == NULL)
-				log_fatal("Null filename! (%d)", buildmap.errorcode);
-			else {
-				int dpkg_ret = system("dpkg-query -s 'feh' > /dev/null 2>&1\n");
-				if(dpkg_ret == 256) {
-					log_fatal("No feh installed!");
-				} else {
-					log_info("Opening output with feh");
-					char fehcmd[MAX_PATH_LEN];
-					snprintf(fehcmd, MAX_PATH_LEN, "feh %s", outname);
-					int retval = system(fehcmd);
-					log_debug("System call returned %d", retval);
+		if(!DryRun) {
+			char *outname;
+			outname = WMT_WriteImage(&buildmap, CustomOutputPathFlag, CustomOutputPath, options);
+			printf("Image written to: %s\n", outname);
+			if(OpenWithFeh) {
+				if(outname == NULL)
+					log_fatal("Null filename! (%d)", buildmap.errorcode);
+				else {
+					int dpkg_ret = system("dpkg-query -s 'feh' > /dev/null 2>&1\n");
+					if(dpkg_ret == 256) {
+						log_fatal("No feh installed!");
+					} else {
+						log_info("Opening output with feh");
+						char fehcmd[MAX_PATH_LEN];
+						snprintf(fehcmd, MAX_PATH_LEN, "feh %s", outname);
+						int retval = system(fehcmd);
+						log_debug("System call returned %d", retval);
+					}
 				}
 			}
 		}
@@ -160,7 +167,7 @@ int main(int argc, char** argv)
 				printf("%s\n", buildmap.createdlicense);
 			}
 			printf("= Levels = (%d)\n", buildmap.levelsfound);
-			for(int i=0; i<buildmap.levelsfound; i++) {
+			for(unsigned int i=0; i<buildmap.levelsfound; i++) {
 				printf("Level %s\n", buildmap.levels[i].name);
 				printf("Players %d\n", buildmap.levels[i].players);
 				printf("Type %d\n", buildmap.levels[i].type);
