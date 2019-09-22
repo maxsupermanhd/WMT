@@ -127,7 +127,7 @@ int main(int argc, char** argv)
 			exit(-1);
 		}
 		if(!DryRun) {
-			char *outname;
+			char *outname = NULL;
 			outname = WMT_WriteImage(&buildmap, CustomOutputPathFlag, CustomOutputPath, options);
 			printf("Image written to: %s\n", outname);
 			if(OpenWithFeh) {
@@ -146,6 +146,7 @@ int main(int argc, char** argv)
 					}
 				}
 			}
+			free(outname);
 		}
 		if(PrintInfo) {
 			printf("==== Report for: %s ====\n", buildmap.mapname);
@@ -320,7 +321,6 @@ int main(int argc, char** argv)
 				printf("Average buildings count: %d\n", BuildingsAverage);
 			}
 		}
-		free(outname);
 		exit(buildmap.errorcode);
 	} else {
 		printf("Usage: %s <map path> [args]\n", argv[0]);
