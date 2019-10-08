@@ -6,6 +6,9 @@
  */
 
 #include "wmt.h"
+#include <time.h>
+
+#define _WMT_strsize(x) (sizeof(char)*strlen(x))
 
 const char *WMT_TerrainTypesStrings[] = {"sand", "sandy brush", "baked earth", "green mud", "red brush", "pink rock", "road", "water", "cliffface", "rubble", "sheetice", "slush", "max"};
 unsigned short WMT_maptileoffset = 0x01ff;
@@ -167,7 +170,9 @@ char* WMT_GetMapNameFromFilename(char* filename) {
 
 bool WMT_ListFiles(WZmap *map) { //pass pointer to struct to make changes
 	map->totalentries = zip_total_entries(map->zip);
-	map->filenames = (char**) calloc(map->totalentries, sizeof(char*));
+	map->filenames = NULL;
+	log_trace("Allocating %ld for %d names...", map->totalentries*sizeof(char*), map->totalentries);
+	map->filenames = (char**) malloc(map->totalentries * sizeof(char*));
 	for(int i=0; i<map->totalentries; i++)
 		map->filenames[i] = (char*) calloc(1024, sizeof(char));
 	if(!map->filenames) {
@@ -250,12 +255,12 @@ bool WMT_ReadTTypesFile(WZmap *map) {
 	} else {
 		//size_t ttpfilesize = zip_entry_size(map->zip);
 		size_t readlen;
-		void *ttpcontents;
-		ssize_t readed = zip_entry_read(map->zip, &ttpcontents, &readlen);
+		ssize_t readed = zip_entry_read(map->zip, &map->ttpcontents, &readlen);
+		map->ttpcontentslen = readed;
 		if(readed==-1) {
 			log_fatal("Error reading ttypes file!");
 		} else {
-			FILE* ttpf = fmemopen(ttpcontents, readlen, "r");
+			FILE* ttpf = fmemopen(map->ttpcontents, readlen, "r");
 			if(ttpf==NULL) {
 				log_fatal("Error opening as file descriptor!");
 				success = false;
@@ -295,8 +300,7 @@ bool WMT_ReadTTypesFile(WZmap *map) {
 				//printf("Version: %d\n", map->ttypver);
 				//printf("Types:  %d\n", map->ttypnum);		
 			}
-			free(ttpcontents);
-			ttpcontents = NULL;
+			//FIXME there should be freeing!
 		}
 		zip_entry_close(map->zip);
 	}
@@ -323,13 +327,13 @@ bool WMT_ReadGameMapFile(WZmap *map) {
 		success = false;
 	} else {
 		//size_t mapfilesize = zip_entry_size(map->zip);
-		void *mapcontents = NULL;
 		size_t readlen;
-		ssize_t readed = zip_entry_read(map->zip, &mapcontents, &readlen);
+		ssize_t readed = zip_entry_read(map->zip, &map->mapcontents, &readlen);
+		map->mapcontentslen = readed;
 		if(readed==-1) {
 			log_warn("Zip file reading error!");
 		}
-		FILE* mapf = fmemopen(mapcontents, readlen, "r");
+		FILE* mapf = fmemopen(map->mapcontents, readlen, "r");
 		if(mapf==NULL) {
 			log_fatal("Error opening file from memory!");
 			success = false;
@@ -381,8 +385,7 @@ bool WMT_ReadGameMapFile(WZmap *map) {
 					log_error("Fread scanned %d elements instead of %d (height)", mapreadret, 1);
 			}
 		}
-		free(mapcontents);
-		mapcontents = NULL;
+		//FIXME there should be freeing too!
 		zip_entry_close(map->zip);
 	}
 	return success;
@@ -422,7 +425,6 @@ void WMT_ReadAddonLev(WZmap *map) {
 			ssize_t read;
 			size_t len;
 			unsigned int LevelNumber = 0;
-			bool LevelFound=false;
 			while(read = getline(&tmpline, &len, addonf) != -1) {
 				tmpline[strlen(tmpline)-1] = 0;
 				if( (linenumber == 0 || linenumber == 1 || linenumber == 2 || linenumber == 3) &&
@@ -471,6 +473,11 @@ void WMT_ReadAddonLev(WZmap *map) {
 				linenumber++;
 			}
 			map->levelsfound = LevelNumber;
+			int playercount=map->levels[0].players;
+			for(unsigned int i=1; i<LevelNumber; i++)
+				if(map->levels[i].players != playercount)
+					log_warn("Multilevel map!");
+			map->players = playercount;
 			free(tmpline);
 			map->haveadditioninfo = true;
 			fclose(addonf);
@@ -843,6 +850,216 @@ void WMT_ReadMap(char* filename, WZmap *map) {
 	WMT_ReadAddonLev(map);
 	log_info("Map reading done!");
 	return;
+}
+
+bool WMT_CheckMap(WZmap *map) {
+	log_info("Checking map...");
+	if(!map->valid) {
+		log_error("Map not valid!");
+		return false;
+	}
+	if(map->players < 2 || map->players > 11) {
+		log_error("Wrong players count! (%d)", map->players);
+		return false;
+	}
+	log_info("Check completed! Nothing wrong found!");
+	return true;
+}
+
+/*
+
+-  /multiplay/maps/<Level>/droid.json
+-  /multiplay/maps/<Level>/feature.json
++  /multiplay/maps/<Level>/struct.json
++  /multiplay/maps/<Level>/ttypes.ttp
++  /multiplay/maps/<Level>/game.map
++  /multiplay/maps/<Level>.json
++  <Level>.xplayer.lev
+
+*/
+
+int WMT_WriteMap(WZmap *map) {
+	log_info("Writing map...");
+	if(WMT_CheckMap(map) == false) {
+		log_error("Map check failed! Please fix errors!");
+		return -1;
+	}
+		
+	char filename[256];
+	for(int i=0; i<256; i++)
+		filename[i]=0;
+	snprintf(filename, 256, "%s.wz", map->mapname);
+	log_info("Filename \"%s\"", filename);
+	
+	struct zip_t *zip = zip_open(filename, 0, 'w');
+	
+	char xplayersfilename[256];
+	for(int i=0; i<256; i++)
+		xplayersfilename[i]=0;
+	snprintf(xplayersfilename, 256, "%s.xplayers.lev", map->mapname);
+	
+	zip_entry_open(zip, xplayersfilename);
+    char buf[16384];
+	for(int i=0; i<16384; i++)
+		buf[i]=0;
+	time_t t = time(NULL);
+	struct tm tm = *localtime(&t);
+	snprintf(buf, 16384, "// Made with WMT\n// Date: %d/%d/%d %d:%d:%d\n// Author: %s\n// License: %s\n\n", 
+						 tm.tm_year + 1900, 
+						 tm.tm_mon + 1, 
+						 tm.tm_mday, 
+						 tm.tm_hour, 
+						 tm.tm_min, 
+						 tm.tm_sec,
+						 map->createdauthor,
+						 map->createdlicense);
+    zip_entry_write(zip, buf, strlen(buf));
+	for(unsigned int i=0; i<map->levelsfound; i++) {
+		for(int i=0; i<16384; i++)
+			buf[i]=0;
+		snprintf(buf, 16384, "level   %s\nplayers %d\ntype    %d\ndataset %s\ngame    \"multiplay/maps/%s.gam\"\ndata    \"wrf/multi/skirmish2.wrf\"\ndata    \"wrf/multi/fog1.wrf\"\n\n",
+							 map->levels[i].name,
+							 map->levels[i].players,
+							 map->levels[i].type,
+							 map->levels[i].dataset,
+							 map->mapname);
+		zip_entry_write(zip, buf, strlen(buf));
+	}
+	zip_entry_close(zip);
+	
+	
+	char mapfilename[256];
+	for(int i=0; i<256; i++)
+		mapfilename[i]=0;
+	snprintf(mapfilename, 256, "multiplay/maps/%s/game.map", map->mapname);
+	zip_entry_open(zip, mapfilename);
+	//FIXME: Need to reparce and redone from raw values!!!
+	zip_entry_write(zip, map->mapcontents, map->mapcontentslen);
+	zip_entry_close(zip);
+	
+	char ttpfilename[256] = {0};
+	snprintf(ttpfilename, 256, "multiplay/maps/%s/ttypes.ttp", map->mapname);
+	zip_entry_open(zip, ttpfilename);
+	//FIXME: Need to reparce and redone from raw values!!!
+	zip_entry_write(zip, map->ttpcontents, map->ttpcontentslen);
+	zip_entry_close(zip);
+	
+	
+	char mapjsonfilename[256] = {'b'};
+	snprintf(mapjsonfilename, 256, "multiplay/maps/%s.json", map->mapname);
+	zip_entry_open(zip, mapjsonfilename);
+	char mapjsonheader[2048] = {'b'}; 
+	snprintf(mapjsonheader, 2048, "{\n    \"map\": {\n        \"file\": \"%s\",\n        \"id\": \"map\",\n        \"maxPlayers\": %d,\n        \"name\": \"%s\"\n    },\n", map->mapname, map->players, map->mapname);
+	zip_entry_write(zip, mapjsonheader, strlen(mapjsonheader)*sizeof(char));
+	for(int plcounter = 0; plcounter<map->players; plcounter++) {
+		char mapjsonplayerchunk[1024] = {'b'};
+		snprintf(mapjsonplayerchunk, 1024, "    \"player_%d\": {\n        \"id\": \"player_%d\",\n        \"team\": %d\n    }%c\n", plcounter, plcounter, (plcounter%2==0 ? plcounter : plcounter), ( !(plcounter+1<map->players) ? ' ' : ','));
+		zip_entry_write(zip, mapjsonplayerchunk, strlen(mapjsonplayerchunk)*sizeof(char)); 
+	}
+	zip_entry_write(zip, "}\n", strlen("}\n")*sizeof(char));
+	zip_entry_close(zip);
+	
+	
+	for(unsigned int i=0; i<map->numStructures; i++) {
+		if(strcmp(map->structs[i].name, "A0FacMod1") == 0 ||
+		   strcmp(map->structs[i].name, "A0ResearchModule1") == 0 ||
+		   strcmp(map->structs[i].name, "A0PowMod1") == 0) {
+			for(unsigned int j=0; j<map->numStructures; j++) {
+				if(map->structs[i].x == map->structs[j].x && map->structs[i].y == map->structs[j].y && map->structs[i].z == map->structs[j].z) {
+					map->structs[j].modules++;
+					log_debug("Added module to %s on %d %d %d now modules %d", map->structs[j].name,
+																			   map->structs[j].x,
+																			   map->structs[j].y,
+																			   map->structs[j].z,
+																			   map->structs[j].modules);
+					break;
+				}
+			}
+			map->structs[i].oldformat = true;
+		}
+	}
+	
+	char structjsonfilename[256] = {'b'};
+	snprintf(structjsonfilename, 256, "multiplay/maps/%s/struct.json", map->mapname);
+	zip_entry_open(zip, structjsonfilename);
+	zip_entry_write(zip, "{\n", _WMT_strsize("{\n"));
+	for(unsigned int i=0; i<map->numStructures; i++) {
+		if(map->structs[i].oldformat == true)
+			continue;
+		char chunk[4096] = {'b'};
+		char modulesstr[32] = {'b'};
+		if(strcmp(map->structs[i].name, "A0LightFactory") == 0 ||
+		   strcmp(map->structs[i].name, "A0VTOLFactory1") == 0 ||
+		   strcmp(map->structs[i].name, "A0ResearchFacility") == 0 ||
+		   strcmp(map->structs[i].name, "A0PowerGenerator") == 0) {
+			snprintf(modulesstr, 32, "        \"modules\": %d,\n", map->structs[i].modules);
+		} else {
+			modulesstr[0] = '\0';
+		}
+		snprintf(chunk, 4096, "    \"structure_%d\": {\n%s        \"name\": \"%s\",\n        \"position\": [\n            %d,\n            %d,\n            %d\n        ],\n        \"rotation\": [\n            %d,\n            %d,\n            %d\n        ],\n        \"startpos\": %d\n    }%c\n",
+							  map->structs[i].id,
+							  modulesstr,
+							  map->structs[i].name,
+							  map->structs[i].x,
+							  map->structs[i].y,
+							  map->structs[i].z,
+							  0,
+							  0,
+							  0,
+							  map->structs[i].player,
+							  i+1<map->numStructures ? ',' : ' ');
+		zip_entry_write(zip, chunk, _WMT_strsize(chunk));
+	}
+	zip_entry_write(zip, "}\n", _WMT_strsize("}\n"));
+	zip_entry_close(zip);
+	
+	char droidjsonfilename[256] = {'b'};
+	snprintf(droidjsonfilename, 256, "multiplay/maps/%s/droid.json", map->mapname);
+	zip_entry_open(zip, droidjsonfilename);
+	zip_entry_write(zip, "{\n", _WMT_strsize("{\n"));
+	for(unsigned int i=0; i<map->droidsCount; i++) {
+		char chunk[4096] = {'b'};
+		snprintf(chunk, 4096, "    \"droid_%d\": {\n        \"id\": %d,\n        \"position\": [\n            %d,\n            %d,\n            %d\n        ],\n        \"rotation\": [\n            %d,\n            %d,\n            %d\n        ],\n        \"startpos\": %d,\n        \"template\": \"%s\"\n    }%c\n",
+							  map->droids[i].id,
+							  map->droids[i].id,
+							  map->droids[i].x,
+							  map->droids[i].y,
+							  map->droids[i].z,
+							  0,
+							  0,
+							  0,
+							  map->droids[i].player,
+							  map->droids[i].name,
+							  i+1<map->droidsCount ? ',' : ' ');
+		zip_entry_write(zip, chunk, _WMT_strsize(chunk));
+	}
+	zip_entry_write(zip, "}\n", _WMT_strsize("}\n"));
+	zip_entry_close(zip);
+	
+	char featurejsonfilename[256] = {'b'};
+	snprintf(featurejsonfilename, 256, "multiplay/maps/%s/feature.json", map->mapname);
+	zip_entry_open(zip, featurejsonfilename);
+	zip_entry_write(zip, "{\n", _WMT_strsize("{\n"));
+	for(unsigned int i=0; i<map->featuresCount; i++) {
+		char chunk[4096] = {'b'};
+		snprintf(chunk, 4096, "    \"feature_%d\": {\n        \"name\": \"%s\",\n        \"position\": [\n            %d,\n            %d,\n            %d\n        ],\n        \"rotation\": [\n            %d,\n            %d,\n            %d\n        ]\n    }%c\n",
+							  map->features[i].id,
+							  map->features[i].name,
+							  map->features[i].x,
+							  map->features[i].y,
+							  map->features[i].z,
+							  0,
+							  0,
+							  0,
+							  i+1<map->featuresCount ? ',' : ' ');
+		zip_entry_write(zip, chunk, _WMT_strsize(chunk));
+	}
+	zip_entry_write(zip, "}\n", _WMT_strsize("}\n"));
+	zip_entry_close(zip);
+	
+	
+	zip_close(zip);
+	return 1;
 }
 
 void _WMT_PutZoomPixel(PngImage *img, int zoom, unsigned short x, unsigned short y, uint8_t r, uint8_t g, uint8_t b) {

@@ -58,6 +58,7 @@ bool WMT_str_match(char* str, char* sub);
 int WMT_SearchFilename(char** arr, unsigned short sizearr, char* name, short urgent);
 void WMT_PrintInfoAboutMap(struct WZmap map);
 
+int WMT_WriteMap(WZmap *map);
 void WMT_ReadMap(char* filename, struct WZmap *map);
 char* WMT_WriteImage(struct WZmap *map, bool CustomPath, char* CustomOutputPath, struct ImageOptions);
 
@@ -118,6 +119,9 @@ struct WZobject {
 	char researchName[60];
 	//int type;
 	//char script[32];
+	
+	int modules = 0;
+	bool oldformat = false;
 };
 
 struct WZfeature {
@@ -158,10 +162,13 @@ struct WZmap {
 	bool haveadditioninfo = false;
 	unsigned int levelsfound = 0;
 	WZlevel levels[64];
+	unsigned short players = 0;
 
 	unsigned int ttypver = -1;
 	unsigned int ttypnum = -1;
 	unsigned short ttyptt[1200];
+	void *ttpcontents;
+	ssize_t ttpcontentslen;
 	WZtileset tileset = tileset_arizona;
 
 	unsigned int maparrsize = 0;
@@ -171,6 +178,8 @@ struct WZmap {
 	bool mapwater[90000];
 	bool mapcliff[90000];
 	unsigned short *mapheight;
+	void *mapcontents;
+	ssize_t mapcontentslen;
 	
 	uint32_t structVersion;
 	uint32_t numStructures;
