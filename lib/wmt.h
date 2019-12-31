@@ -193,6 +193,18 @@ struct WZmap {
 	uint32_t droidsCount;
 	WZdroid *droids = NULL;
 	
+	uint32_t gamVersion;
+	void* gamcontents;
+	ssize_t gamcontentslen;
+	uint32_t gameTime;
+	uint32_t gameType;
+	uint32_t scrollminx;
+	uint32_t scrollminy;
+	uint32_t scrollmaxx;
+	uint32_t scrollmaxy;
+	char gamLevelName[20];
+	uint32_t gamPower[8];
+	
 	bool fields_clean = false;
 	
 	~WZmap() {
@@ -210,6 +222,8 @@ struct WZmap {
 		structs = NULL;
 		free(features);
 		features = NULL;
+		free(gamcontents);
+		gamcontents = NULL;
 		for(int i=0; i<totalentries; i++)
 			free(filenames[i]);
 		zip_entry_close(zip);

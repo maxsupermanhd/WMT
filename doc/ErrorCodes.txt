@@ -6,3 +6,4 @@ WMT error codes detailed description:
 -3   - Error reading file contents. Consult fread error codes.
 -4   - Error opening map file (inside zip) from memory. IDK how it can be but you can try)
 -5   - Cannot find needed file in archive. Maybe its too old or too new to deal with it
+-6   - Error reading from opened in memory archive. Consult zip_entry_read from zip.h .

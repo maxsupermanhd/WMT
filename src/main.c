@@ -150,6 +150,7 @@ int main(int argc, char** argv)
 		}
 		if(PrintInfo) {
 			printf("==== Report for: %s ====\n", buildmap.mapname);
+			printf("Level name       %s\n", buildmap.gamLevelName);
 			printf("Path             %s\n", buildmap.path);
 			printf("ttypes   version %d\n", buildmap.ttypver);
 			printf("ttypes   count   %d\n", buildmap.ttypnum);
@@ -159,6 +160,8 @@ int main(int argc, char** argv)
 			printf("map      size    %d x %d\n", buildmap.maptotalx, buildmap.maptotaly);
 			printf("features version %d\n", buildmap.featureVersion);
 			printf("features count   %d\n", buildmap.featuresCount);
+			printf("scroll min (x/y) %d x %d\n", buildmap.scrollminx, buildmap.scrollminy);
+			printf("scroll max (x/y) %d x %d\n", buildmap.scrollmaxx, buildmap.scrollmaxy);
 			printf("=Level info=\n");
 			if(buildmap.haveadditioninfo)
 			{

@@ -10,6 +10,12 @@
 
 #define _WMT_strsize(x) (sizeof(char)*strlen(x))
 
+#ifndef __bswap_constant_32
+#define __bswap_constant_32(x)                                        \
+  ((((x) & 0xff000000u) >> 24) | (((x) & 0x00ff0000u) >> 8)        \
+   | (((x) & 0x0000ff00u) << 8) | (((x) & 0x000000ffu) << 24))
+#endif
+
 const char *WMT_TerrainTypesStrings[] = {"sand", "sandy brush", "baked earth", "green mud", "red brush", "pink rock", "road", "water", "cliffface", "rubble", "sheetice", "slush", "max"};
 unsigned short WMT_maptileoffset = 0x01ff;
 
@@ -244,6 +250,92 @@ bool WMT_ReadFromFile(FILE *fp, size_t s, size_t v, void *var) {
 	return true;
 }
 
+bool WMT_ReadGAMFile(WZmap *map) {
+	bool success = true;
+	char gampath[MAX_PATH_LEN] = {'\0'};
+	snprintf(gampath, MAX_PATH_LEN, "%s.gam", map->mapname);
+	int indexgam = WMT_SearchFilename(map->filenames, map->totalentries, (char*)gampath, 2);
+	int openstatus = zip_entry_openbyindex(map->zip, indexgam);
+	if(openstatus<0) {
+		log_fatal("Opening file by index error! Status %d.", openstatus);
+		map->errorcode = -4;
+		success = false;
+	} else {
+		size_t readlen;
+		ssize_t readed = zip_entry_read(map->zip, &map->gamcontents, &readlen);
+		map->gamcontentslen = readed;
+		if(readed == -1) {
+			log_fatal("Error reading gam file!");
+			map->errorcode = -6;
+			success = false;
+		} else {
+			FILE* gamf = fmemopen(map->gamcontents, readlen, "r");
+			if(gamf==NULL) {
+				log_fatal("Error opening as file descriptor!");
+				map->errorcode = -4;
+				success = false;
+			} else {
+				char gamhead[5] = { '0', '0', '0', '0', '\0'};
+				if(!WMT_ReadFromFile(gamf, sizeof(char), 4, &gamhead))
+					log_error("Failed to read gam header!");
+				if(gamhead[0] != 'g' ||
+				   gamhead[1] != 'a' ||
+				   gamhead[2] != 'm' ||
+				   gamhead[3] != 'e')
+					log_warn("GAM file header not \'game\'! (%d %d %d %d got)", gamhead[0], gamhead[1], gamhead[2], gamhead[3]);
+				if(!WMT_ReadFromFile(gamf, sizeof(unsigned int), 1, &map->gamVersion))
+					log_error("Failed to read gam version!");
+				
+				{union { uint32_t i; char c[4]; } e = { 0x01000000 };
+				if(e.c[0]) {log_warn("We are dealing with some big endian shit!");} }
+				
+				bool needswap = false;
+				if(map->gamVersion > 35) {
+					log_warn("GAM file is version %d and we need to read big endian!");
+					needswap = true;
+				}
+				
+				if(!WMT_ReadFromFile(gamf, sizeof(unsigned int), 1, &map->gameTime) ||
+				   !WMT_ReadFromFile(gamf, sizeof(unsigned int), 1, &map->gameType) ||
+				   !WMT_ReadFromFile(gamf, sizeof(unsigned int), 1, &map->scrollminx) ||
+				   !WMT_ReadFromFile(gamf, sizeof(unsigned int), 1, &map->scrollminy) ||
+				   !WMT_ReadFromFile(gamf, sizeof(unsigned int), 1, &map->scrollmaxx) ||
+				   !WMT_ReadFromFile(gamf, sizeof(unsigned int), 1, &map->scrollmaxy) ||
+				   !WMT_ReadFromFile(gamf, sizeof(char), 20, &map->gamLevelName)) {
+					log_fatal("GAM data seems to be incorrect!");
+				}
+				
+				for(int energyc = 0; energyc < 8; energyc++) {
+					if(map->gamVersion >= 10) {
+						unsigned int dummy;
+						if(!WMT_ReadFromFile(gamf, sizeof(unsigned int), 1, &map->gamPower[energyc]) || 
+						   !WMT_ReadFromFile(gamf, sizeof(unsigned int), 1, &dummy)) {
+							log_fatal("GAM power data seems to be WRONG!");
+						}
+					} else {
+						map->gamPower[energyc] = 0; // no default found
+					}
+				}
+				
+				if(needswap) { // see glibc/bits/byteswap.h
+					__bswap_constant_32(map->gameTime);
+					__bswap_constant_32(map->gameType);
+					__bswap_constant_32(map->scrollminx);
+					__bswap_constant_32(map->scrollminy);
+					__bswap_constant_32(map->scrollmaxx);
+					__bswap_constant_32(map->scrollmaxy);
+					for(int swp=0; swp<8; swp++)
+						__bswap_constant_32(map->gamPower[swp]);
+				}
+				
+				fclose(gamf);
+			}
+		}
+		zip_entry_close(map->zip);
+	}
+	return success;
+}
+
 bool WMT_ReadTTypesFile(WZmap *map) {
 	bool success = true;
 	int indexttypes = WMT_SearchFilename(map->filenames, map->totalentries, (char*)"ttypes.ttp", 2);
@@ -413,6 +505,7 @@ void WMT_ReadAddonLev(WZmap *map) {
 		void *addoncontents;
 		size_t readlen;
 		ssize_t readed = zip_entry_read(map->zip, &addoncontents, &readlen);
+		log_fatal("readlen %d readed %d", readlen, readed);
 		if(readed==-1) {
 			log_warn("Zip file reading error!");
 		}
@@ -425,7 +518,7 @@ void WMT_ReadAddonLev(WZmap *map) {
 			ssize_t read;
 			size_t len;
 			unsigned int LevelNumber = 0;
-			while(read = getline(&tmpline, &len, addonf) != -1) {
+			while((read = getline(&tmpline, &len, addonf)) != -1) {
 				tmpline[strlen(tmpline)-1] = 0;
 				if( (linenumber == 0 || linenumber == 1 || linenumber == 2 || linenumber == 3) &&
 					tmpline[0] == '/' &&
@@ -815,10 +908,16 @@ void WMT_ReadMap(char* filename, WZmap *map) {
 		map->errorcode = -1;
 		return;
 	}
+	log_info("Reading gam");
 	map->mapname = WMT_GetMapNameFromFilename(filename);
 	//printf("Map name: \"%s\"\n", map->mapname);
 	if(!WMT_ListFiles(map)) {
 		log_fatal("Error listing map files!");
+		map->valid=false;
+		return;
+	}
+	if(!WMT_ReadGAMFile(map)) {
+		log_fatal("Error reading gam file!");
 		map->valid=false;
 		return;
 	}
@@ -868,12 +967,13 @@ bool WMT_CheckMap(WZmap *map) {
 
 /*
 
--  /multiplay/maps/<Level>/droid.json
--  /multiplay/maps/<Level>/feature.json
++  /multiplay/maps/<Level>/droid.json
++  /multiplay/maps/<Level>/feature.json
 +  /multiplay/maps/<Level>/struct.json
 +  /multiplay/maps/<Level>/ttypes.ttp
 +  /multiplay/maps/<Level>/game.map
-+  /multiplay/maps/<Level>.json
+?  /multiplay/maps/<Level>.json
+-  /multiplay/maps/<Level>.gam
 +  <Level>.xplayer.lev
 
 */
@@ -944,6 +1044,13 @@ int WMT_WriteMap(WZmap *map) {
 	zip_entry_write(zip, map->ttpcontents, map->ttpcontentslen);
 	zip_entry_close(zip);
 	
+	char gamfilename[256] = {0};
+	snprintf(gamfilename, 256, "multiplay/maps/%s.gam", map->mapname);
+	zip_entry_open(zip, gamfilename);
+	//FIXME: Need to reparce and redone from raw values!!!
+	zip_entry_write(zip, map->gamcontents, map->gamcontentslen);
+	zip_entry_close(zip);
+	
 	
 	char mapjsonfilename[256] = {'b'};
 	snprintf(mapjsonfilename, 256, "multiplay/maps/%s.json", map->mapname);
@@ -984,8 +1091,8 @@ int WMT_WriteMap(WZmap *map) {
 	zip_entry_open(zip, structjsonfilename);
 	zip_entry_write(zip, "{\n", _WMT_strsize("{\n"));
 	for(unsigned int i=0; i<map->numStructures; i++) {
-		if(map->structs[i].oldformat == true)
-			continue;
+		//if(map->structs[i].oldformat == true)
+		//	continue;
 		char chunk[4096] = {'b'};
 		char modulesstr[32] = {'b'};
 		if(strcmp(map->structs[i].name, "A0LightFactory") == 0 ||
@@ -1008,6 +1115,7 @@ int WMT_WriteMap(WZmap *map) {
 							  0,
 							  map->structs[i].player,
 							  i+1<map->numStructures ? ',' : ' ');
+		//log_fatal("%c", i+1<map->numStructures ? ',' : ' ');
 		zip_entry_write(zip, chunk, _WMT_strsize(chunk));
 	}
 	zip_entry_write(zip, "}\n", _WMT_strsize("}\n"));

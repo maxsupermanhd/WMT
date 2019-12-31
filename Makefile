@@ -1,6 +1,9 @@
-CCFLAGS=-O2
+CCFLAGS=-O3
 
 all: WMT
+
+sanitize: CCFLAGS += -fsanitize=address -fsanitize=undefined -fno-sanitize-recover -fstack-protector
+sanitize: debug
 
 debug: CCFLAGS += -DDEBUG -g -Wall
 debug: WMT
