@@ -505,7 +505,7 @@ void WMT_ReadAddonLev(WZmap *map) {
 		void *addoncontents;
 		size_t readlen;
 		ssize_t readed = zip_entry_read(map->zip, &addoncontents, &readlen);
-		log_fatal("readlen %d readed %d", readlen, readed);
+		//log_fatal("readlen %d readed %d", readlen, readed);
 		if(readed==-1) {
 			log_warn("Zip file reading error!");
 		}
