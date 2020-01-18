@@ -121,7 +121,7 @@ int main(int argc, char** argv)
 	if(argc > 1) {
 		struct WZmap buildmap;
 		WMT_ReadMap(wzmappath, &buildmap);
-		WMT_WriteMap(&buildmap);
+		//WMT_WriteMap(&buildmap);
 		if(buildmap.valid == false) {
 			log_fatal("Error building info for file %s!", wzmappath);
 			exit(-1);

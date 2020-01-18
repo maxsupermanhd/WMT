@@ -156,6 +156,30 @@ int WMT_SearchFilename(char** arr, unsigned short sizearr, char* name, short urg
 	}
 }
 
+int WMT_SearchFileExt(char** arr, unsigned short sizearr, char* ext, short urgent = 0) {
+	// Don't return last/first found by ext. file. Just mark unfoun if found more than one.
+	for(int i=0; i<sizearr; i++) {
+		if(strncmp(arr[i]+strlen(arr[i])-strlen(ext), ext, strlen(ext)) == 0) {
+			return i;
+		}
+	}
+	switch(urgent) {
+		case 2:
+			log_fatal("Failed to find \"%s\" extension.", ext);
+			exit(0);
+		break;
+		case 1:
+			log_warn("Failed to find \"%s\" extension.", ext);
+			return -1;
+		break;
+		default:
+			log_trace("Failed to find file by \"%s\" extension.", ext);
+			return -1;
+		break;
+	}
+	return -1;
+}
+
 char* WMT_GetMapNameFromFilename(char* filename) {
 	char* fullpath;
 	if(asprintf(&fullpath, "%s", filename));
@@ -254,7 +278,10 @@ bool WMT_ReadGAMFile(WZmap *map) {
 	bool success = true;
 	char gampath[MAX_PATH_LEN] = {'\0'};
 	snprintf(gampath, MAX_PATH_LEN, "%s.gam", map->mapname);
-	int indexgam = WMT_SearchFilename(map->filenames, map->totalentries, (char*)gampath, 2);
+	int indexgam = WMT_SearchFilename(map->filenames, map->totalentries, (char*)gampath, 1);
+	if(indexgam == -1) {
+		indexgam = WMT_SearchFileExt(map->filenames, map->totalentries, (char*)".gam", 2);
+	}
 	int openstatus = zip_entry_openbyindex(map->zip, indexgam);
 	if(openstatus<0) {
 		log_fatal("Opening file by index error! Status %d.", openstatus);
