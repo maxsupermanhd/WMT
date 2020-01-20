@@ -19,6 +19,7 @@ struct ImageOptions options;
 bool PrintInfo = false;
 bool AnalyzeMap = false;
 bool DryRun = false;
+bool Rebuild = false;
 
 
 int ArgParse(int argc, char **argv) {
@@ -79,6 +80,8 @@ int ArgParse(int argc, char **argv) {
 			DryRun = true;
 		} else if(WMT_equalstr(argv[argcounter], "--print")||WMT_equalstr(argv[argcounter], "-p")) {
 			PrintInfo = true;
+		} else if(WMT_equalstr(argv[argcounter], "--rebuild")||WMT_equalstr(argv[argcounter], "-r")) {
+			Rebuild = true;
 		} else if(WMT_equalstr(argv[argcounter], "--help")||WMT_equalstr(argv[argcounter], "-h")) {
 			printf("   Usage: %s <map-path> [args]\n", argv[0]);
 			printf("   Available args:\n");
@@ -91,6 +94,7 @@ int ArgParse(int argc, char **argv) {
 			printf("   -q [--quiet]    No stdout output.\n");
 			printf("   -p [--print]    Print info to stdout.\n");
 			printf("   -a [--analyze]  Analyzes map.\n");
+			printf("   -r [--rebuild]  Try to recompile map with json format.\n");
 			printf("   \n");
 			printf("   == image options ==\n");
 			printf("   --nowater       Forcing not to draw water. Drawing heghtmap instead.\n");
@@ -121,7 +125,8 @@ int main(int argc, char** argv)
 	if(argc > 1) {
 		struct WZmap buildmap;
 		WMT_ReadMap(wzmappath, &buildmap);
-		//WMT_WriteMap(&buildmap);
+		if(Rebuild)
+			WMT_WriteMap(&buildmap);
 		if(buildmap.valid == false) {
 			log_fatal("Error building info for file %s!", wzmappath);
 			exit(-1);
