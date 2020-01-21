@@ -1,4 +1,5 @@
-CCFLAGS=-O3
+.PHONY: all sanitize debug pkg check-pkg WMT
+CCFLAGS=-O3 -D_WIN32 -std=gnu++11
 
 all: WMT
 
@@ -26,4 +27,8 @@ build/zip.o: lib/zip.c lib/zip.h
 build/wmt.o: lib/wmt.c lib/wmt.h
 	g++ lib/wmt.c -o build/wmt.o -c -std=c++17 $(CCFLAGS)
 clean:
+ifeq ($(OS),Windows_NT)
+	del build\*.o WMT.exe /Q
+else
 	rm build/*.o WMT WMT.deb *.png -rf
+endif

@@ -183,7 +183,7 @@ int main(int argc, char** argv)
 				printf("Dataset %s\n", buildmap.levels[i].dataset);
 			}
 			int scavcount = 0;
-			for(uint i=0; i<buildmap.numStructures; i++)
+			for(unsigned int i=0; i<buildmap.numStructures; i++)
 				if(buildmap.structs[i].player == 10)
 					scavcount++;
 			printf("Scavengers: ");
@@ -194,12 +194,12 @@ int main(int argc, char** argv)
 			if(scavcount >= 50)
 				printf("a lot (%d)\n", scavcount);
 			int oilcount = 0;
-			for(uint i=0; i<buildmap.featuresCount; i++)
+			for(unsigned int i=0; i<buildmap.featuresCount; i++)
 				if(WMT_equalstr(buildmap.features[i].name, (char*)"OilResource"))
 					oilcount++;
 			printf("Oil rigs         %d\n", oilcount);
 			int barrelscount = 0;
-			for(uint i=0; i<buildmap.featuresCount; i++)
+			for(unsigned int i=0; i<buildmap.featuresCount; i++)
 				if(WMT_equalstr(buildmap.features[i].name, (char*)"OilDrum"))
 					barrelscount++;
 			if(barrelscount > 0)
@@ -232,7 +232,7 @@ int main(int argc, char** argv)
 				GeneratorsPerPlayer[i] = 0;
 				GeneratorsModulesPerPlayer[i] = 0;
 			}
-			for(uint i=0; i<buildmap.numStructures; i++) {
+			for(unsigned int i=0; i<buildmap.numStructures; i++) {
 				DetectedPlayers[buildmap.structs[i].player] = true;
 				PlayerBuildings[buildmap.structs[i].player]++;
 				if(WMT_equalstr(buildmap.structs[i].name, "A0LightFactory"))

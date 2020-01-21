@@ -19,8 +19,70 @@
 const char *WMT_TerrainTypesStrings[] = {"sand", "sandy brush", "baked earth", "green mud", "red brush", "pink rock", "road", "water", "cliffface", "rubble", "sheetice", "slush", "max"};
 unsigned short WMT_maptileoffset = 0x01ff;
 
+#ifdef _WIN32
+int vasprintf(char** strp, const char* fmt, va_list ap) {
+	va_list ap2;
+	va_copy(ap2, ap);
+	char tmp[1];
+	int size = vsnprintf(tmp, 1, fmt, ap2);
+	if (size <= 0) return size;
+	va_end(ap2);
+	size += 1;
+	*strp = (char*)malloc(size * sizeof(char));
+	return vsnprintf(*strp, size, fmt, ap);
+}
+int asprintf(char **strp, const char *fmt, ...) {
+    va_list ap;
+    va_start(ap, fmt);
+    int r = vasprintf(strp, fmt, ap);
+    va_end(ap);
+    return r;
+}
 
-
+size_t getline(char **lineptr, size_t *n, FILE *stream) {
+    char *bufptr = NULL;
+    char *p = bufptr;
+    size_t size;
+    int c;
+    if (lineptr == NULL)
+        return -1;
+    if (stream == NULL)
+        return -1;
+    if (n == NULL)
+        return -1;
+    bufptr = *lineptr;
+    size = *n;
+    c = fgetc(stream);
+    if (c == EOF)
+        return -1;
+    if (bufptr == NULL) {
+        bufptr = (char*)malloc(128);
+        if (bufptr == NULL) {
+            return -1;
+        }
+        size = 128;
+    }
+    p = bufptr;
+    while(c != EOF) {
+        if ((p - bufptr) > (size - 1)) {
+            size = size + 128;
+            bufptr = (char*)realloc(bufptr, size);
+            if (bufptr == NULL) {
+                return -1;
+            }
+        }
+        *p++ = c;
+        if (c == '\n') {
+            break;
+        }
+        c = fgetc(stream);
+    }
+    *p++ = '\0';
+    *lineptr = bufptr;
+    *n = size;
+    return p - bufptr - 1;
+}
+#endif
 
 bool WMT_equalstr(char* trg, const char* chk) {
 	if(strlen(trg)!=strlen(chk))
@@ -296,7 +358,15 @@ bool WMT_ReadGAMFile(WZmap *map) {
 			map->errorcode = -6;
 			success = false;
 		} else {
-			FILE* gamf = fmemopen(map->gamcontents, readlen, "r");
+			FILE* gamf = NULL;
+#ifdef _WIN32
+			FILE* tmpf = tmpfile();
+			fwrite(map->gamcontents, readlen, 1, tmpf);
+			rewind(tmpf);
+			gamf = tmpf;
+#else
+			gamf = fmemopen(map->gamcontents, readlen, "r");
+#endif
 			if(gamf==NULL) {
 				log_fatal("Error opening as file descriptor!");
 				map->errorcode = -4;
@@ -379,7 +449,15 @@ bool WMT_ReadTTypesFile(WZmap *map) {
 		if(readed==-1) {
 			log_fatal("Error reading ttypes file!");
 		} else {
-			FILE* ttpf = fmemopen(map->ttpcontents, readlen, "r");
+			FILE* ttpf = NULL;
+#ifdef _WIN32
+			FILE* tmpf = tmpfile();
+			fwrite(map->ttpcontents, readlen, 1, tmpf);
+			rewind(tmpf);
+			ttpf = tmpf;
+#else
+			ttpf = fmemopen(map->ttpcontents, readlen, "r");
+#endif
 			if(ttpf==NULL) {
 				log_fatal("Error opening as file descriptor!");
 				success = false;
@@ -451,57 +529,66 @@ bool WMT_ReadGameMapFile(WZmap *map) {
 		map->mapcontentslen = readed;
 		if(readed==-1) {
 			log_warn("Zip file reading error!");
-		}
-		FILE* mapf = fmemopen(map->mapcontents, readlen, "r");
-		if(mapf==NULL) {
-			log_fatal("Error opening file from memory!");
-			success = false;
 		} else {
-			char maphead[5] = { '0', '0', '0', '0', '\0'};
-			if(!WMT_ReadFromFile(mapf, sizeof(char), 4, &maphead))
-				log_error("Failed to read ttypes header!");
-			if(maphead[0] != 'm' ||
-			   maphead[1] != 'a' ||
-			   maphead[2] != 'p')
-				log_warn("Map file header not \'map\'!");
-			if(!WMT_ReadFromFile(mapf, sizeof(unsigned int), 1, &map->mapver))
-				log_error("Failed to read map file version!");
-			if(!WMT_ReadFromFile(mapf, sizeof(unsigned int), 1, &map->maptotalx))
-				log_error("Failed to read map bounds (x)");
-			if(!WMT_ReadFromFile(mapf, sizeof(unsigned int), 1, &map->maptotaly))
-				log_error("Failed to read map bounds (y)");
-			//printf("\nResults of reading game.map\n");
-			//printf("Version: %d\n", map->mapver);
-			//printf("Width:   %d\n", map->maptotaly);
-			//printf("Height:  %d\n", map->maptotalx);
-			
-			int maparraysize = map->maptotaly*map->maptotalx;
-			map->mapheight = (unsigned short*) calloc(maparraysize, sizeof(unsigned short));
-			if(map->mapheight==NULL) {
-				log_fatal("Height array allocation failed!");
-			}
-			unsigned short maptileinfo = 0;
-			ssize_t mapreadret = -1;
-			short maptiletexture = -1;
-			WMT_TerrainTypes maptileterrain = ttsand;
-			for(int counter=0; counter<maparraysize; counter++)
-			{
-				//nowmapy = counter/map->maptotaly;
-				//nowmapx = counter-(nowmapy*map->maptotalx);
-				mapreadret = fread(&maptileinfo, 2, 1, mapf);
-				if(mapreadret != 1)
-					log_error("Fread scanned %d elements instead of %d (tileinfo)", mapreadret, 1);
-				maptiletexture = (maptileinfo & WMT_maptileoffset);
-				maptileterrain = (WMT_TerrainTypes)map->ttyptt[maptiletexture];
-				if(maptileterrain == ttwater) {
-					map->mapwater[counter]=true;
+			FILE* mapf = NULL;
+#ifdef _WIN32
+			FILE* tmpf = tmpfile();
+			fwrite(map->mapcontents, readlen, 1, tmpf);
+			rewind(tmpf);
+			mapf = tmpf;
+#else
+			mapf = fmemopen(map->mapcontents, readlen, "r");
+#endif
+			if(mapf==NULL) {
+				log_fatal("Error opening file from memory!");
+				success = false;
+			} else {
+				char maphead[5] = { '0', '0', '0', '0', '\0'};
+				if(!WMT_ReadFromFile(mapf, sizeof(char), 4, &maphead))
+					log_error("Failed to read ttypes header!");
+				if(maphead[0] != 'm' ||
+				   maphead[1] != 'a' ||
+				   maphead[2] != 'p')
+					log_warn("Map file header not \'map\'!");
+				if(!WMT_ReadFromFile(mapf, sizeof(unsigned int), 1, &map->mapver))
+					log_error("Failed to read map file version!");
+				if(!WMT_ReadFromFile(mapf, sizeof(unsigned int), 1, &map->maptotalx))
+					log_error("Failed to read map bounds (x)");
+				if(!WMT_ReadFromFile(mapf, sizeof(unsigned int), 1, &map->maptotaly))
+					log_error("Failed to read map bounds (y)");
+				//printf("\nResults of reading game.map\n");
+				//printf("Version: %d\n", map->mapver);
+				//printf("Width:   %d\n", map->maptotaly);
+				//printf("Height:  %d\n", map->maptotalx);
+				
+				int maparraysize = map->maptotaly*map->maptotalx;
+				map->mapheight = (unsigned short*) calloc(maparraysize, sizeof(unsigned short));
+				if(map->mapheight==NULL) {
+					log_fatal("Height array allocation failed!");
 				}
-				if(maptileterrain == ttclifface) {
-					map->mapcliff[counter]=true;
+				unsigned short maptileinfo = 0;
+				ssize_t mapreadret = -1;
+				short maptiletexture = -1;
+				WMT_TerrainTypes maptileterrain = ttsand;
+				for(int counter=0; counter<maparraysize; counter++)
+				{
+					//nowmapy = counter/map->maptotaly;
+					//nowmapx = counter-(nowmapy*map->maptotalx);
+					mapreadret = fread(&maptileinfo, 2, 1, mapf);
+					if(mapreadret != 1)
+						log_error("Fread scanned %d elements instead of %d (tileinfo)", mapreadret, 1);
+					maptiletexture = (maptileinfo & WMT_maptileoffset);
+					maptileterrain = (WMT_TerrainTypes)map->ttyptt[maptiletexture];
+					if(maptileterrain == ttwater) {
+						map->mapwater[counter]=true;
+					}
+					if(maptileterrain == ttclifface) {
+						map->mapcliff[counter]=true;
+					}
+					mapreadret = fread(&map->mapheight[counter], 1, 1, mapf);
+					if(mapreadret != 1)
+						log_error("Fread scanned %d elements instead of %d (height)", mapreadret, 1);
 				}
-				mapreadret = fread(&map->mapheight[counter], 1, 1, mapf);
-				if(mapreadret != 1)
-					log_error("Fread scanned %d elements instead of %d (height)", mapreadret, 1);
 			}
 		}
 		//FIXME there should be freeing too!
@@ -535,72 +622,81 @@ void WMT_ReadAddonLev(WZmap *map) {
 		//log_fatal("readlen %d readed %d", readlen, readed);
 		if(readed==-1) {
 			log_warn("Zip file reading error!");
-		}
-		FILE* addonf = fmemopen(addoncontents, readlen, "r");
-		if(addonf==NULL) {
-			log_fatal("Error opening file from memory!");
 		} else {
-			char* tmpline = NULL;
-			unsigned short linenumber = 0;
-			ssize_t read;
-			size_t len;
-			unsigned int LevelNumber = 0;
-			while((read = getline(&tmpline, &len, addonf)) != -1) {
-				tmpline[strlen(tmpline)-1] = 0;
-				if( (linenumber == 0 || linenumber == 1 || linenumber == 2 || linenumber == 3) &&
-					tmpline[0] == '/' &&
-					tmpline[1] == '/')
-				{
-					switch(linenumber) {
-						case 0:
-						strcpy(map->createdon, tmpline+3);
-						break;
-						case 1:
-						strcpy(map->createddate, tmpline+3);
-						break;
-						case 2:
-						strcpy(map->createdauthor, tmpline+3);
-						break;
-						case 3:
-						strcpy(map->createdlicense, tmpline+3);
-						break;
-						default:
-						log_info("Old map format!");
-						break;
+			FILE* addonf = NULL;
+#ifdef _WIN32
+			FILE* tmpf = tmpfile();
+			fwrite(addoncontents, readlen, 1, tmpf);
+			rewind(tmpf);
+			addonf = tmpf;
+#else
+			addonf = fmemopen(addoncontents, readlen, "r");
+#endif
+			if(addonf==NULL) {
+				log_fatal("Error opening file from memory!");
+			} else {
+				char* tmpline = NULL;
+				unsigned short linenumber = 0;
+				ssize_t read;
+				size_t len;
+				unsigned int LevelNumber = 0;
+				while((read = getline(&tmpline, &len, addonf)) != -1) {
+					tmpline[strlen(tmpline)-1] = 0;
+					if( (linenumber == 0 || linenumber == 1 || linenumber == 2 || linenumber == 3) &&
+						tmpline[0] == '/' &&
+						tmpline[1] == '/')
+					{
+						switch(linenumber) {
+							case 0:
+							strcpy(map->createdon, tmpline+3);
+							break;
+							case 1:
+							strcpy(map->createddate, tmpline+3);
+							break;
+							case 2:
+							strcpy(map->createdauthor, tmpline+3);
+							break;
+							case 3:
+							strcpy(map->createdlicense, tmpline+3);
+							break;
+							default:
+							log_info("Old map format!");
+							break;
+						}
 					}
+					else
+					{
+						log_info("Parsing \"%s\"", tmpline);
+						if(strstr(tmpline, "level") == tmpline) {
+							log_info("Level found!");
+							LevelNumber++;
+							strcpy(map->levels[LevelNumber-1].name, tmpline+8);
+						}
+						if(strstr(tmpline, "players") == tmpline) {
+							log_info("Players found!");
+							map->levels[LevelNumber-1].players = atoi(tmpline+8);
+						}
+						if(strstr(tmpline, "type") == tmpline) {
+							log_info("Type found!");
+							map->levels[LevelNumber-1].type = atoi(tmpline+8);
+						}
+						if(strstr(tmpline, "dataset") == tmpline) {
+							log_info("Level found!");
+							strcpy(map->levels[LevelNumber-1].dataset, tmpline+8);
+						}
+					}
+					linenumber++;
 				}
-				else
-				{
-					log_info("Parsing \"%s\"", tmpline);
-					if(strstr(tmpline, "level") == tmpline) {
-						log_info("Level found!");
-						LevelNumber++;
-						strcpy(map->levels[LevelNumber-1].name, tmpline+8);
-					}
-					if(strstr(tmpline, "players") == tmpline) {
-						log_info("Players found!");
-						map->levels[LevelNumber-1].players = atoi(tmpline+8);
-					}
-					if(strstr(tmpline, "type") == tmpline) {
-						log_info("Type found!");
-						map->levels[LevelNumber-1].type = atoi(tmpline+8);
-					}
-					if(strstr(tmpline, "dataset") == tmpline) {
-						log_info("Level found!");
-						strcpy(map->levels[LevelNumber-1].dataset, tmpline+8);
-					}
-				}
-				linenumber++;
+				map->levelsfound = LevelNumber;
+				int playercount=map->levels[0].players;
+				for(unsigned int i=1; i<LevelNumber; i++)
+					if(map->levels[i].players != playercount)
+						log_warn("Multilevel map!");
+				map->players = playercount;
+				free(tmpline);
+				map->haveadditioninfo = true;
+				fclose(addonf);
 			}
-			map->levelsfound = LevelNumber;
-			int playercount=map->levels[0].players;
-			for(unsigned int i=1; i<LevelNumber; i++)
-				if(map->levels[i].players != playercount)
-					log_warn("Multilevel map!");
-			map->players = playercount;
-			free(tmpline);
-			map->haveadditioninfo = true;
-			fclose(addonf);
 		}
 		free(addoncontents);
 		addoncontents = NULL;
@@ -629,7 +725,15 @@ bool WMT_ReadStructs(WZmap *map) {
 			log_fatal("Failed to read struct.bjo!");
 			success = false;
 		} else {
-			FILE* structf = fmemopen(structcontents, readlen, "r");
+			FILE* structf = NULL;
+#ifdef _WIN32
+			FILE* tmpf = tmpfile();
+			fwrite(structcontents, readlen, 1, tmpf);
+			rewind(tmpf);
+			structf = tmpf;
+#else
+			structf = fmemopen(structcontents, readlen, "r");
+#endif
 			if(structf==NULL) {
 				log_fatal("Error opening struct.bjo from memory!");
 				success = false;
@@ -786,7 +890,15 @@ bool WMT_ReadFeaturesFile(WZmap *map) {
 		if(readed==-1) {
 			log_fatal("Error reading features file!");
 		} else {
-			FILE* featf = fmemopen(featcontents, readlen, "r");
+			FILE* featf = NULL;
+#ifdef _WIN32
+			FILE* tmpf = tmpfile();
+			fwrite(featcontents, readlen, 1, tmpf);
+			rewind(tmpf);
+			featf = tmpf;
+#else
+			featf = fmemopen(featcontents, readlen, "r");
+#endif
 			if(featf==NULL) {
 				log_fatal("Error opening as file descriptor!");
 				success = false;
@@ -856,7 +968,15 @@ bool WMT_ReadDroidsFile(WZmap *map) {
 		if(readed==-1) {
 			log_fatal("Error reading dinit file!");
 		} else {
-			FILE* dintf = fmemopen(dintcontents, readlen, "r");
+			FILE* dintf = NULL;
+#ifdef _WIN32
+			FILE* tmpf = tmpfile();
+			fwrite(dintcontents, readlen, 1, tmpf);
+			rewind(tmpf);
+			dintf = tmpf;
+#else
+			dintf = fmemopen(dintcontents, readlen, "r");
+#endif
 			if(dintf==NULL) {
 				log_fatal("Error opening as file descriptor!");
 				success = false;
