@@ -242,31 +242,14 @@ int WMT_SearchFileExt(char** arr, unsigned short sizearr, char* ext, short urgen
 	return -1;
 }
 
-char* WMT_GetMapNameFromFilename(char* filename) {
-	char* fullpath;
-	if(asprintf(&fullpath, "%s", filename));
-	int fullpathlen=strlen(fullpath);
-	int lastindex=-1;
-	for(int c=0; c<fullpathlen; c++) {
-		if(fullpath[c] == '/')
-			lastindex=c;
-	}
-	if(lastindex!=-1)
-		WMT_str_cut(fullpath, 0, lastindex+1);
-	if(strlen(fullpath)>67)
-		WMT_str_cut(fullpath, strlen(fullpath)-68, strlen(fullpath)-3);
-	else
-		WMT_str_cut(fullpath, strlen(fullpath)-3, -1);
-	return fullpath;
-}
-
 bool WMT_ListFiles(WZmap *map) { //pass pointer to struct to make changes
 	map->totalentries = zip_total_entries(map->zip);
 	map->filenames = NULL;
 	log_trace("Allocating %ld for %d names...", map->totalentries*sizeof(char*), map->totalentries);
-	map->filenames = (char**) malloc(map->totalentries * sizeof(char*));
+	int tebcp = map->totalentries;
+	map->filenames = (char**) calloc(tebcp, sizeof(char*));    //////////////////////////////
 	for(int i=0; i<map->totalentries; i++)
-		map->filenames[i] = (char*) calloc(1024, sizeof(char));
+		map->filenames[i] = (char*) malloc(1024 * sizeof(char));
 	if(!map->filenames) {
 		log_fatal("Filenames array allocation fail!");
 		map->errorcode = -2;
@@ -338,12 +321,18 @@ bool WMT_ReadFromFile(FILE *fp, size_t s, size_t v, void *var) {
 
 bool WMT_ReadGAMFile(WZmap *map) {
 	bool success = true;
-	char gampath[MAX_PATH_LEN] = {'\0'};
-	snprintf(gampath, MAX_PATH_LEN, "%s.gam", map->mapname);
-	int indexgam = WMT_SearchFilename(map->filenames, map->totalentries, (char*)gampath, 1);
-	if(indexgam == -1) {
-		indexgam = WMT_SearchFileExt(map->filenames, map->totalentries, (char*)".gam", 2);
-	}
+	int indexgam = WMT_SearchFileExt(map->filenames, map->totalentries, (char*)".gam", 1);
+	
+	int namestart = 0;
+	int flen = strlen(map->filenames[indexgam]);
+	for(int i=0; i<flen; i++)
+		if(map->filenames[indexgam][i] == '\\' ||
+		   map->filenames[indexgam][i] == '/')
+			namestart = i+1;
+	map->mapname = (char*) malloc(MAX_PATH_LEN*sizeof(char));
+	strncpy(map->mapname, map->filenames[indexgam]+namestart, flen-namestart-4);
+	map->mapname[flen-namestart-4] = '\0';
+	
 	int openstatus = zip_entry_openbyindex(map->zip, indexgam);
 	if(openstatus<0) {
 		log_fatal("Opening file by index error! Status %d.", openstatus);
@@ -599,7 +588,7 @@ bool WMT_ReadGameMapFile(WZmap *map) {
 
 
 
-void WMT_ReadAddonLev(WZmap *map) {
+bool WMT_ReadAddonLev(WZmap *map) {
 	int opened = 0;
 	int index = 0;
 	for(int i=0; i<map->totalentries; i++)
@@ -615,6 +604,7 @@ void WMT_ReadAddonLev(WZmap *map) {
 	if(opened<0) {
 		log_fatal("Failed to open addon.lev file!");
 		map->errorcode = -4;
+		return false;
 	} else {
 		void *addoncontents;
 		size_t readlen;
@@ -622,6 +612,8 @@ void WMT_ReadAddonLev(WZmap *map) {
 		//log_fatal("readlen %d readed %d", readlen, readed);
 		if(readed==-1) {
 			log_warn("Zip file reading error!");
+			zip_entry_close(map->zip);
+			return false;
 		} else {
 			FILE* addonf = NULL;
 #ifdef _WIN32
@@ -634,6 +626,7 @@ void WMT_ReadAddonLev(WZmap *map) {
 #endif
 			if(addonf==NULL) {
 				log_fatal("Error opening file from memory!");
+				return false;
 			} else {
 				char* tmpline = NULL;
 				unsigned short linenumber = 0;
@@ -702,7 +695,7 @@ void WMT_ReadAddonLev(WZmap *map) {
 		addoncontents = NULL;
 		zip_entry_close(map->zip);
 	}
-	return;
+	return true;
 }
 
 bool WMT_ReadStructs(WZmap *map) {
@@ -1055,45 +1048,54 @@ void WMT_ReadMap(char* filename, WZmap *map) {
 		map->errorcode = -1;
 		return;
 	}
-	log_info("Reading gam");
-	map->mapname = WMT_GetMapNameFromFilename(filename);
-	//printf("Map name: \"%s\"\n", map->mapname);
+	log_debug("Listing files...");
 	if(!WMT_ListFiles(map)) {
 		log_fatal("Error listing map files!");
 		map->valid=false;
 		return;
 	}
+	log_debug("Reading GAM...");
 	if(!WMT_ReadGAMFile(map)) {
 		log_fatal("Error reading gam file!");
 		map->valid=false;
 		return;
 	}
+	log_debug("Reading TTP...");
 	if(!WMT_ReadTTypesFile(map)) {
 		log_fatal("Error reading ttypes file!");
 		map->valid=false;
 		return;
 	}
+	log_debug("Reading MAP...");
 	if(!WMT_ReadGameMapFile(map)) {
 		log_fatal("Error reading map file!");
 		map->valid=false;
 		return;
 	}
+	log_debug("Reading structs...");
 	if(!WMT_ReadStructs(map)) {
 		log_fatal("Error reading struct file!");
 		map->valid=false;
 		return;
 	}
+	log_debug("Reading features...");
 	if(!WMT_ReadFeaturesFile(map)) {
 		log_fatal("Error reading features file!");
 		map->valid=false;
 		return;
 	}
+	log_debug("Reading droids...");
 	if(!WMT_ReadDroidsFile(map)) {
 		log_fatal("Error reading droid file!");
 		map->valid=false;
 		return;
 	}
-	WMT_ReadAddonLev(map);
+	log_debug("Reading addon...");
+	if(!WMT_ReadAddonLev(map)) {
+		log_fatal("Error reading addon file!");
+		map->valid=false;
+		return;
+	}
 	log_info("Map reading done!");
 	return;
 }

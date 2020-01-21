@@ -3,7 +3,7 @@ CCFLAGS=-O3 -std=gnu++11
 
 all: WMT
 
-sanitize: CCFLAGS += -fsanitize=address -fno-sanitize-recover -fstack-protector
+sanitize: CCFLAGS += -fsanitize=address
 sanitize: debug
 
 debug: CCFLAGS += -DDEBUG -g -Wall

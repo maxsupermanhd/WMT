@@ -155,7 +155,6 @@ int main(int argc, char** argv)
 		}
 		if(PrintInfo) {
 			printf("==== Report for: %s ====\n", buildmap.mapname);
-			printf("Level name       %s\n", buildmap.gamLevelName);
 			printf("Path             %s\n", buildmap.path);
 			printf("ttypes   version %d\n", buildmap.ttypver);
 			printf("ttypes   count   %d\n", buildmap.ttypnum);
