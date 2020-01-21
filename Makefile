@@ -1,5 +1,5 @@
 .PHONY: all sanitize debug pkg check-pkg WMT
-CCFLAGS=-O3 -D_WIN32 -std=gnu++11
+CCFLAGS=-O3 -std=gnu++11
 
 all: WMT
 
