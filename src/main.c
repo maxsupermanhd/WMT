@@ -328,6 +328,7 @@ int main(int argc, char** argv)
 				printf("Average buildings count: %d\n", BuildingsAverage);
 			}
 		}
+		WMT_FreeMap(&buildmap);
 		exit(buildmap.errorcode);
 	} else {
 		printf("Usage: %s <map path> [args]\n", argv[0]);

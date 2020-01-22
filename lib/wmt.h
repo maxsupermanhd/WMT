@@ -61,6 +61,7 @@ void WMT_PrintInfoAboutMap(struct WZmap map);
 int WMT_WriteMap(WZmap *map);
 void WMT_ReadMap(char* filename, struct WZmap *map);
 char* WMT_WriteImage(struct WZmap *map, bool CustomPath, char* CustomOutputPath, struct ImageOptions);
+void WMT_FreeMap(WZmap *map);
 
 enum WZtileset { tileset_arizona, tileset_urban, tileset_rockies };
 
@@ -206,30 +207,6 @@ struct WZmap {
 	uint32_t gamPower[8];
 	
 	bool fields_clean = false;
-	
-	~WZmap() {
-		if(fields_clean) {
-			log_info("Prevented double clean!\n");
-			return;
-		}
-		free(mapname);
-		mapname = NULL;
-		free(mapheight);
-		mapheight = NULL;
-		free(filenames);
-		filenames = NULL;
-		free(structs);
-		structs = NULL;
-		free(features);
-		features = NULL;
-		free(gamcontents);
-		gamcontents = NULL;
-		for(int i=0; i<totalentries; i++)
-			free(filenames[i]);
-		zip_entry_close(zip);
-		zip_close(zip);
-		fields_clean=true;
-	}
 };
 
 struct ImageOptions {

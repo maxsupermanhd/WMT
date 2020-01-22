@@ -1100,6 +1100,39 @@ void WMT_ReadMap(char* filename, WZmap *map) {
 	return;
 }
 
+void WMT_FreeMap(WZmap *map) {
+	if(map->fields_clean) {
+		log_warn("Prevented double clean!\n");
+		return;
+	}
+
+	free(map->mapname);
+	map->mapname = NULL;
+
+	free(map->mapheight);
+	map->mapheight = NULL;
+
+	free(map->structs);
+	map->structs = NULL;
+
+	free(map->features);
+	map->features = NULL;
+
+	free(map->gamcontents);
+	map->gamcontents = NULL;
+
+	for(int i=0; i<map->totalentries; i++) {
+		free(map->filenames[i]);
+		map->filenames[i] = NULL;
+	}
+	free(map->filenames);
+	map->filenames = NULL;
+
+	zip_entry_close(map->zip);
+	zip_close(map->zip);
+	map->fields_clean=true;
+}
+
 bool WMT_CheckMap(WZmap *map) {
 	log_info("Checking map...");
 	if(!map->valid) {
