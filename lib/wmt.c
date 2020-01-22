@@ -1048,6 +1048,10 @@ void WMT_ReadMap(char* filename, WZmap *map) {
 		map->errorcode = -1;
 		return;
 	}
+	if(zip_is64(map->zip) == -1) {
+		log_error("WARNING! Got 64 bit zip file. This read can fail with no reason.");
+		log_error(" Consult https://github.com/kuba--/zip/issues/109 for more info.");
+	}
 	log_debug("Listing files...");
 	if(!WMT_ListFiles(map)) {
 		log_fatal("Error listing map files!");

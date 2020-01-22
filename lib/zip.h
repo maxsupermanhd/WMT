@@ -20,8 +20,9 @@ extern "C" {
 #endif
 
 #if !defined(_SSIZE_T_DEFINED) && !defined(_SSIZE_T_DEFINED_) &&               \
-    !defined(_SSIZE_T) && !defined(_SSIZE_T_) && !defined(__ssize_t_defined)
-#define _SSIZE_T
+    !defined(__DEFINED_ssize_t) && !defined(__ssize_t_defined) &&              \
+    !defined(_SSIZE_T) && !defined(_SSIZE_T_)
+
 // 64-bit Windows is the only mainstream platform
 // where sizeof(long) != sizeof(void*)
 #ifdef _WIN64
@@ -29,6 +30,14 @@ typedef long long ssize_t; /* byte count or error */
 #else
 typedef long ssize_t; /* byte count or error */
 #endif
+
+#define _SSIZE_T_DEFINED
+#define _SSIZE_T_DEFINED_
+#define __DEFINED_ssize_t
+#define __ssize_t_defined
+#define _SSIZE_T
+#define _SSIZE_T_
+
 #endif
 
 #ifndef MAX_PATH
@@ -80,6 +89,16 @@ extern struct zip_t *zip_open(const char *zipname, int level, char mode);
  * @param zip zip archive handler.
  */
 extern void zip_close(struct zip_t *zip);
+
+/**
+ * Determines if the archive has a zip64 end of central directory headers.
+ *
+ * @param zip zip archive handler.
+ *
+ * @return the return code - 1 (true), 0 (false), negative number (< 0) on
+ *         error.
+ */
+extern int zip_is64(struct zip_t *zip);
 
 /**
  * Opens an entry by name in the zip archive.
