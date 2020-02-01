@@ -10,7 +10,7 @@ Works only with old map format generated with FlaME.
 - [x] Analyze map by structures count.
 - [x] Print usefull info to console.
 - [x] Provide easy wrapper to Warzone map format.
-- [X] Windows support. (see below)
+- [x] Windows support. (see below)
 - [ ] Read new map format. (json) (will be added soon)
 - [ ] Create map renders. (like from ingame)
 - [ ] Edit maps. (Will be added in a sperate app)
@@ -33,11 +33,23 @@ Works only with old map format generated with FlaME.
 
 # How to run on Windows based OS
 
-It's possible to make this thing work on Windows.
-Main problem now that I (maxsupermanhd) can't find proper way to do that.
-Any zip file that WMT opens stores in dynamicly allocated memory and opens it with `fmemopen` function.
-In Windows there is no true alternative for this kind of operations, so I decided to leave this until i find true Windows solution.
-If you really want to do make this work, you can make a crutch with unzipping files into temp directory. (WMT.c :292 :377 :450 :534 :627 :785 :855)
+Just use .exe file from releases. (use cmd to run)
+
+# Issues recommended template
+
+- OS (Linux/Windows) (include kernel/libs versions).
+- Type: crash(segfault/abort), infinitie loop, opening error or saving error. (or write something other)
+- Logfile generated with piping WMT output with -O999 to file.
+- Map file to reproduce error.
+
+*Warning!*
+*I will not respond to any windows-only issues.*
+*I don't have any windows PC. If you want help with your problem on Windows based system you should ask someone else.*
+
+*Explanation*
+*Any zip file that WMT opens stores in dynamicly allocated memory and opens it with `fmemopen` function.*
+*In Windows there is no true alternative for this kind of operations, so I decided to make temp-files crutch solution to Windows builds.*
+*If you want to help making Windows releases please contact me.*
 
 # Contact me
 
