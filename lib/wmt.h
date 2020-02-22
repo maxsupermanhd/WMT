@@ -27,12 +27,22 @@
 #include <errno.h>
 
 #include "zip.h"
+#ifndef _NOLOGBUILD
 #include "log.h"
+#endif
 #include "TinyPngOut.hpp"
 #include "jfes.h"
 
 #define MAX_PATH_LEN 2048
 
+#ifdef _NOLOGBUILD
+#define log_trace(...) assert(true==true)
+#define log_debug(...) assert(true==true)
+#define log_info(...)  assert(true==true)
+#define log_warn(...)  assert(true==true)
+#define log_error(...) assert(true==true)
+#define log_fatal(...) assert(true==true)
+#endif
 
 /*#ifndef typename(x)
 #define typename(x) _Generic((x),                                                 \
@@ -249,13 +259,15 @@ struct PngImage {
 		pixels[y*w*3+x*3+2] = b;
 		return true;
 	}
-	void WriteImage(char filename[MAX_PATH_LEN]) {
+	bool WriteImage(char filename[MAX_PATH_LEN]) {
 		try {
 			std::ofstream out(filename, std::ios::binary);
 			TinyPngOut pngout(static_cast<uint32_t>(w), static_cast<uint32_t>(h), out);
 			pngout.write(pixels, static_cast<size_t>(w*h));
+			return true;
 		} catch (const std::exception& ex) {
 			log_error("%s", ex.what());
+			return false;
 		}
 	}
 };

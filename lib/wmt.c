@@ -362,22 +362,37 @@ bool WMT_ReadGAMFile(WZmap *map) {
 				success = false;
 			} else {
 				char gamhead[5] = { '0', '0', '0', '0', '\0'};
-				if(!WMT_ReadFromFile(gamf, sizeof(char), 4, &gamhead))
+				if(!WMT_ReadFromFile(gamf, sizeof(char), 4, &gamhead)) {
 					log_error("Failed to read gam header!");
+					fclose(gamf);
+					zip_entry_close(map->zip);
+					map->errorcode = -3;
+					return false;
+				}
 				if(gamhead[0] != 'g' ||
 				   gamhead[1] != 'a' ||
 				   gamhead[2] != 'm' ||
-				   gamhead[3] != 'e')
+				   gamhead[3] != 'e') {
 					log_warn("GAM file header not \'game\'! (%d %d %d %d got)", gamhead[0], gamhead[1], gamhead[2], gamhead[3]);
-				if(!WMT_ReadFromFile(gamf, sizeof(unsigned int), 1, &map->gamVersion))
+					fclose(gamf);
+					zip_entry_close(map->zip);
+					map->errorcode = -3;
+					return false;
+				}
+				if(!WMT_ReadFromFile(gamf, sizeof(unsigned int), 1, &map->gamVersion)) {
 					log_error("Failed to read gam version!");
+					fclose(gamf);
+					zip_entry_close(map->zip);
+					map->errorcode = -3;
+					return false;
+				}
 				
 				{union { uint32_t i; char c[4]; } e = { 0x01000000 };
-				if(e.c[0]) {log_warn("We are dealing with some big endian shit!");} }
+				if(e.c[0]) {printf("We are dealing with some big endian shit!");} }
 				
 				bool needswap = false;
 				if(map->gamVersion > 35) {
-					log_warn("GAM file is version %d and we need to read big endian!");
+					//log_warn("GAM file is version %d and we need to read big endian!");
 					needswap = true;
 				}
 				
@@ -388,15 +403,24 @@ bool WMT_ReadGAMFile(WZmap *map) {
 				   !WMT_ReadFromFile(gamf, sizeof(unsigned int), 1, &map->scrollmaxx) ||
 				   !WMT_ReadFromFile(gamf, sizeof(unsigned int), 1, &map->scrollmaxy) ||
 				   !WMT_ReadFromFile(gamf, sizeof(char), 20, &map->gamLevelName)) {
-					log_fatal("GAM data seems to be incorrect!");
+					log_fatal("GAM data read seems to be incorrect!");
+					fclose(gamf);
+					zip_entry_close(map->zip);
+					map->errorcode = -3;
+					return false;
 				}
 				
 				for(int energyc = 0; energyc < 8; energyc++) {
 					if(map->gamVersion >= 10) {
 						unsigned int dummy;
 						if(!WMT_ReadFromFile(gamf, sizeof(unsigned int), 1, &map->gamPower[energyc]) || 
-						   !WMT_ReadFromFile(gamf, sizeof(unsigned int), 1, &dummy)) {
+						   !WMT_ReadFromFile(gamf, sizeof(unsigned int), 1, &dummy))
+						{
 							log_fatal("GAM power data seems to be WRONG!");
+							fclose(gamf);
+							zip_entry_close(map->zip);
+							map->errorcode = -3;
+							return false;
 						}
 					} else {
 						map->gamPower[energyc] = 0; // no default found
@@ -437,6 +461,8 @@ bool WMT_ReadTTypesFile(WZmap *map) {
 		map->ttpcontentslen = readed;
 		if(readed==-1) {
 			log_fatal("Error reading ttypes file!");
+			map->errorcode = -6;
+			success = false;
 		} else {
 			FILE* ttpf = NULL;
 #ifdef _WIN32
