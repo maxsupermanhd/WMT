@@ -1,4 +1,4 @@
-.PHONY: all sanitize debug pkg check-pkg WMT
+.PHONY: all clean sanitize debug pkg check-pkg WMT
 CCFLAGS=-O3 -std=gnu++11 -fPIC
 
 all: WMT
@@ -9,7 +9,8 @@ sanitize: debug
 debug: CCFLAGS += -DDEBUG -g -Wall
 debug: WMT
 
-lib: build/wmt.o
+lib: CCFLAGS += -D_NOLOGBUILD
+lib: build/wmt.o build/png.o build/zip.o
 	g++ --shared -o wmt.so build/wmt.o build/png.o build/zip.o $(CCFLAGS)
 
 pkg: WMT
@@ -31,7 +32,7 @@ build/png.o: lib/TinyPngOut.cpp lib/TinyPngOut.hpp
 build/zip.o: lib/zip.c lib/zip.h
 	g++ lib/zip.c -o build/zip.o -c $(CCFLAGS)
 
-build/wmt.o: lib/wmt.c lib/wmt.h build/png.o build/zip.o
+build/wmt.o: lib/wmt.c lib/wmt.h
 	g++ lib/wmt.c -o build/wmt.o -c -std=c++17 $(CCFLAGS)
 
 clean:

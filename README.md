@@ -19,7 +19,7 @@ Works only with old map format generated with FlaME.
 # How to build
 
 1. Install deps.
- That can be done with `$ sudo apt-get install gcc libstdc++-6-dev lib32gcc-7-dev libc6-dev make`
+ That can be done with `$ sudo apt-get install g++ libstdc++-6-dev lib32gcc-7-dev libc6-dev make git`
 2. Clone this repo `$ git clone https://github.com/maxsupermanhd/WMT.git`
 3. Go to directory `$ cd WMT`
 4. Make `$ make`
@@ -39,7 +39,7 @@ Just use .exe file from releases. (use cmd to run)
 
 - OS (Linux/Windows) (include kernel/libs versions).
 - Type: crash(segfault/abort), infinitie loop, opening error or saving error. (or write something other)
-- Logfile generated with piping WMT output with -O999 to file.
+- Logfile generated with piping WMT output with -v999 to file.
 - Map file to reproduce error.
 
 *Warning!*
