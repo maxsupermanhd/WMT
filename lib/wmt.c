@@ -322,17 +322,17 @@ bool WMT_ReadFromFile(FILE *fp, size_t s, size_t v, void *var) {
 bool WMT_ReadGAMFile(WZmap *map) {
 	bool success = true;
 	int indexgam = WMT_SearchFileExt(map->filenames, map->totalentries, (char*)".gam", 1);
-	
+
 	int namestart = 0;
 	int flen = strlen(map->filenames[indexgam]);
 	for(int i=0; i<flen; i++)
 		if(map->filenames[indexgam][i] == '\\' ||
 		   map->filenames[indexgam][i] == '/')
 			namestart = i+1;
-	map->mapname = (char*) malloc(MAX_PATH_LEN*sizeof(char));
+	map->mapname = (char*) malloc(WMT_MAX_PATH_LEN*sizeof(char));
 	strncpy(map->mapname, map->filenames[indexgam]+namestart, flen-namestart-4);
 	map->mapname[flen-namestart-4] = '\0';
-	
+
 	int openstatus = zip_entry_openbyindex(map->zip, indexgam);
 	if(openstatus<0) {
 		log_fatal("Opening file by index error! Status %d.", openstatus);
@@ -386,16 +386,16 @@ bool WMT_ReadGAMFile(WZmap *map) {
 					map->errorcode = -3;
 					return false;
 				}
-				
+
 				{union { uint32_t i; char c[4]; } e = { 0x01000000 };
 				if(e.c[0]) {printf("We are dealing with some big endian shit!");} }
-				
+
 				bool needswap = false;
 				if(map->gamVersion > 35) {
 					//log_warn("GAM file is version %d and we need to read big endian!");
 					needswap = true;
 				}
-				
+
 				if(!WMT_ReadFromFile(gamf, sizeof(unsigned int), 1, &map->gameTime) ||
 				   !WMT_ReadFromFile(gamf, sizeof(unsigned int), 1, &map->gameType) ||
 				   !WMT_ReadFromFile(gamf, sizeof(unsigned int), 1, &map->scrollminx) ||
@@ -409,11 +409,11 @@ bool WMT_ReadGAMFile(WZmap *map) {
 					map->errorcode = -3;
 					return false;
 				}
-				
+
 				for(int energyc = 0; energyc < 8; energyc++) {
 					if(map->gamVersion >= 10) {
 						unsigned int dummy;
-						if(!WMT_ReadFromFile(gamf, sizeof(unsigned int), 1, &map->gamPower[energyc]) || 
+						if(!WMT_ReadFromFile(gamf, sizeof(unsigned int), 1, &map->gamPower[energyc]) ||
 						   !WMT_ReadFromFile(gamf, sizeof(unsigned int), 1, &dummy))
 						{
 							log_fatal("GAM power data seems to be WRONG!");
@@ -426,7 +426,7 @@ bool WMT_ReadGAMFile(WZmap *map) {
 						map->gamPower[energyc] = 0; // no default found
 					}
 				}
-				
+
 				if(needswap) { // see glibc/bits/byteswap.h
 					__bswap_constant_32(map->gameTime);
 					__bswap_constant_32(map->gameType);
@@ -437,7 +437,7 @@ bool WMT_ReadGAMFile(WZmap *map) {
 					for(int swp=0; swp<8; swp++)
 						__bswap_constant_32(map->gamPower[swp]);
 				}
-				
+
 				fclose(gamf);
 			}
 		}
@@ -491,26 +491,26 @@ bool WMT_ReadTTypesFile(WZmap *map) {
 					log_error("Failed to read number of terrain types!");
 				if(!WMT_ReadFromFile(ttpf, sizeof(unsigned short), map->ttypnum, &map->ttyptt))
 					log_error("Failed to read terrain types!");
-				
+
 				uint8_t TileSetProbe[3];
 				TileSetProbe[0] = (uint8_t)map->ttyptt[0];
 				TileSetProbe[1] = (uint8_t)map->ttyptt[1];
 				TileSetProbe[2] = (uint8_t)map->ttyptt[2];
-				
+
 				if (TileSetProbe[0] == 1 && TileSetProbe[1] == 0 && TileSetProbe[2] == 2)
 					map->tileset = tileset_arizona;
 				else if (TileSetProbe[0] == 2 && TileSetProbe[1] == 2 && TileSetProbe[2] == 2)
 					map->tileset = tileset_urban;
 				else if (TileSetProbe[0] == 0 && TileSetProbe[1] == 0 && TileSetProbe[2] == 2)
 					map->tileset = tileset_rockies;
-				
+
 				//printf("Tileset: %s\n", WMT_PrintTilesetName(map->tileset));
-				
+
 				fclose(ttpf);
 				//printf("Results of readyng ttypes.ttp:\n");
 				//printf("Header: \"%s\"\n", ttphead);
 				//printf("Version: %d\n", map->ttypver);
-				//printf("Types:  %d\n", map->ttypnum);		
+				//printf("Types:  %d\n", map->ttypnum);
 			}
 			//FIXME there should be freeing!
 		}
@@ -525,10 +525,10 @@ bool WMT_ReadGameMapFile(WZmap *map) {
 	int openstatus;
 	if(indexgamemap==-1) {
 		log_warn("Failed to search game.map file! Trying second way!");
-		char mapnewpath[MAX_PATH_LEN];
-		for(int i=0; i<MAX_PATH_LEN; i++)
+		char mapnewpath[WMT_MAX_PATH_LEN];
+		for(int i=0; i<WMT_MAX_PATH_LEN; i++)
 			mapnewpath[i]='0';
-		snprintf(mapnewpath, MAX_PATH_LEN, "multiplay/maps/%s/game.map", map->mapname);
+		snprintf(mapnewpath, WMT_MAX_PATH_LEN, "multiplay/maps/%s/game.map", map->mapname);
 		openstatus = zip_entry_open(map->zip, mapnewpath);
 	} else {
 		openstatus = zip_entry_openbyindex(map->zip, indexgamemap);
@@ -575,7 +575,7 @@ bool WMT_ReadGameMapFile(WZmap *map) {
 				//printf("Version: %d\n", map->mapver);
 				//printf("Width:   %d\n", map->maptotaly);
 				//printf("Height:  %d\n", map->maptotalx);
-				
+
 				int maparraysize = map->maptotaly*map->maptotalx;
 				map->mapheight = (unsigned short*) calloc(maparraysize, sizeof(unsigned short));
 				if(map->mapheight==NULL) {
@@ -730,7 +730,7 @@ bool WMT_ReadStructs(WZmap *map) {
 	if(indexstructs == -1) {
 		log_fatal("Failed to find struct.bjo!");
 		return false;
-	} 
+	}
 	int openstatus = zip_entry_openbyindex(map->zip, indexstructs);
 	if(openstatus<0) {
 		log_fatal("Failed to open struct.bjo!");
@@ -769,11 +769,11 @@ bool WMT_ReadStructs(WZmap *map) {
 					log_error("Failed to read struct file version!");
 				if(!WMT_ReadFromFile(structf, sizeof(uint32_t), 1, &map->numStructures))
 					log_error("Failed to read structure count!");
-				
+
 				//printf("Struct version: %d\n", map->structVersion);
 				//printf("Structs count:  %d\n", map->numStructures);
-				
-				
+
+
 				map->structs = (WZobject*)malloc(sizeof(WZobject)*map->numStructures);
 				if(map->structs == NULL) {
 					log_fatal("Failed to allocate memory for structures!");
@@ -783,8 +783,8 @@ bool WMT_ReadStructs(WZmap *map) {
 				int nameLength = 60;
 				if(map->structVersion <= 19)
 					nameLength = 40;
-				
-				
+
+
 				for(unsigned int structnum = 0; structnum<map->numStructures; structnum++) {
 					if(!WMT_ReadFromFile(structf, sizeof(char), nameLength, &map->structs[structnum].name))
 						log_error("Failed to read struct name!");
@@ -934,7 +934,7 @@ bool WMT_ReadFeaturesFile(WZmap *map) {
 					log_error("Failed to read features version!");
 				if(!WMT_ReadFromFile(featf, sizeof(unsigned int), 1, &map->featuresCount))
 					log_error("Failed to read number of features!");
-				
+
 				map->features = (WZfeature*)malloc(map->featuresCount * sizeof(WZfeature));
 				if(map->features == NULL) {
 					log_error("Error allocating memory for features!");
@@ -944,7 +944,7 @@ bool WMT_ReadFeaturesFile(WZmap *map) {
 				int nameLength = 60;
 				if(map->featureVersion <= 19)
 					nameLength = 40;
-				
+
 				for(uint32_t featnum = 0; featnum<map->featuresCount; featnum++) {
 					WMT_ReadFromFile(featf, sizeof(char), nameLength, &map->features[featnum].name);
 					WMT_ReadFromFile(featf, sizeof(uint32_t), 1, &map->features[featnum].id);
@@ -958,7 +958,7 @@ bool WMT_ReadFeaturesFile(WZmap *map) {
 					WMT_ReadFromFile(featf, sizeof(uint32_t), 1, &map->features[featnum].burnDamage);
 					//WMT_PrintFeatureShort(map->features[featnum]);
 				}
-				
+
 				fclose(featf);
 				//printf("Features version: %d\n", map->featureVersion);
 				//printf("Features count:   %d\n", map->featuresCount);
@@ -1012,7 +1012,7 @@ bool WMT_ReadDroidsFile(WZmap *map) {
 					log_error("Failed to read droids version!");
 				if(!WMT_ReadFromFile(dintf, sizeof(unsigned int), 1, &map->droidsCount))
 					log_error("Failed to read number of droids!");
-				
+
 				map->droids = (WZdroid*)malloc(map->droidsCount * sizeof(WZdroid));
 				if(map->droids == NULL) {
 					log_error("Error allocating memory for droids!");
@@ -1022,7 +1022,7 @@ bool WMT_ReadDroidsFile(WZmap *map) {
 				int nameLength = 60;
 				if(map->droidsVersion <= 19)
 					nameLength = 40;
-				
+
 				for(uint32_t droidnum = 0; droidnum<map->droidsCount; droidnum++) {
 					WMT_ReadFromFile(dintf, sizeof(char), nameLength, &map->droids[droidnum].name);
 					WMT_ReadFromFile(dintf, sizeof(uint32_t), 1, &map->droids[droidnum].id);
@@ -1035,7 +1035,7 @@ bool WMT_ReadDroidsFile(WZmap *map) {
 					WMT_ReadFromFile(dintf, sizeof(uint32_t), 1, &map->droids[droidnum].burnStart);
 					WMT_ReadFromFile(dintf, sizeof(uint32_t), 1, &map->droids[droidnum].burnDamage);
 				}
-				
+
 				fclose(dintf);
 			}
 			free(dintcontents);
@@ -1196,32 +1196,32 @@ int WMT_WriteMap(WZmap *map) {
 		log_error("Map check failed! Please fix errors!");
 		return -1;
 	}
-		
+
 	char filename[256];
 	for(int i=0; i<256; i++)
 		filename[i]=0;
 	snprintf(filename, 256, "%s.wz", map->mapname);
 	log_info("Filename \"%s\"", filename);
-	
+
 	struct zip_t *zip = zip_open(filename, 0, 'w');
-	
+
 	char xplayersfilename[256];
 	for(int i=0; i<256; i++)
 		xplayersfilename[i]=0;
 	snprintf(xplayersfilename, 256, "%s.xplayers.lev", map->mapname);
-	
+
 	zip_entry_open(zip, xplayersfilename);
     char buf[16384];
 	for(int i=0; i<16384; i++)
 		buf[i]=0;
 	time_t t = time(NULL);
 	struct tm tm = *localtime(&t);
-	snprintf(buf, 16384, "// Made with WMT\n// Date: %d/%d/%d %d:%d:%d\n// Author: %s\n// License: %s\n\n", 
-						 tm.tm_year + 1900, 
-						 tm.tm_mon + 1, 
-						 tm.tm_mday, 
-						 tm.tm_hour, 
-						 tm.tm_min, 
+	snprintf(buf, 16384, "// Made with WMT\n// Date: %d/%d/%d %d:%d:%d\n// Author: %s\n// License: %s\n\n",
+						 tm.tm_year + 1900,
+						 tm.tm_mon + 1,
+						 tm.tm_mday,
+						 tm.tm_hour,
+						 tm.tm_min,
 						 tm.tm_sec,
 						 map->createdauthor,
 						 map->createdlicense);
@@ -1238,8 +1238,8 @@ int WMT_WriteMap(WZmap *map) {
 		zip_entry_write(zip, buf, strlen(buf));
 	}
 	zip_entry_close(zip);
-	
-	
+
+
 	char mapfilename[256];
 	for(int i=0; i<256; i++)
 		mapfilename[i]=0;
@@ -1248,37 +1248,37 @@ int WMT_WriteMap(WZmap *map) {
 	//FIXME: Need to reparce and redone from raw values!!!
 	zip_entry_write(zip, map->mapcontents, map->mapcontentslen);
 	zip_entry_close(zip);
-	
+
 	char ttpfilename[256] = {0};
 	snprintf(ttpfilename, 256, "multiplay/maps/%s/ttypes.ttp", map->mapname);
 	zip_entry_open(zip, ttpfilename);
 	//FIXME: Need to reparce and redone from raw values!!!
 	zip_entry_write(zip, map->ttpcontents, map->ttpcontentslen);
 	zip_entry_close(zip);
-	
+
 	char gamfilename[256] = {0};
 	snprintf(gamfilename, 256, "multiplay/maps/%s.gam", map->mapname);
 	zip_entry_open(zip, gamfilename);
 	//FIXME: Need to reparce and redone from raw values!!!
 	zip_entry_write(zip, map->gamcontents, map->gamcontentslen);
 	zip_entry_close(zip);
-	
-	
+
+
 	char mapjsonfilename[256] = {'b'};
 	snprintf(mapjsonfilename, 256, "multiplay/maps/%s.json", map->mapname);
 	zip_entry_open(zip, mapjsonfilename);
-	char mapjsonheader[2048] = {'b'}; 
+	char mapjsonheader[2048] = {'b'};
 	snprintf(mapjsonheader, 2048, "{\n    \"map\": {\n        \"file\": \"%s\",\n        \"id\": \"map\",\n        \"maxPlayers\": %d,\n        \"name\": \"%s\"\n    },\n", map->mapname, map->players, map->mapname);
 	zip_entry_write(zip, mapjsonheader, strlen(mapjsonheader)*sizeof(char));
 	for(int plcounter = 0; plcounter<map->players; plcounter++) {
 		char mapjsonplayerchunk[1024] = {'b'};
 		snprintf(mapjsonplayerchunk, 1024, "    \"player_%d\": {\n        \"id\": \"player_%d\",\n        \"team\": %d\n    }%c\n", plcounter, plcounter, (plcounter%2==0 ? plcounter : plcounter), ( !(plcounter+1<map->players) ? ' ' : ','));
-		zip_entry_write(zip, mapjsonplayerchunk, strlen(mapjsonplayerchunk)*sizeof(char)); 
+		zip_entry_write(zip, mapjsonplayerchunk, strlen(mapjsonplayerchunk)*sizeof(char));
 	}
 	zip_entry_write(zip, "}\n", strlen("}\n")*sizeof(char));
 	zip_entry_close(zip);
-	
-	
+
+
 	for(unsigned int i=0; i<map->numStructures; i++) {
 		if(strcmp(map->structs[i].name, "A0FacMod1") == 0 ||
 		   strcmp(map->structs[i].name, "A0ResearchModule1") == 0 ||
@@ -1297,7 +1297,7 @@ int WMT_WriteMap(WZmap *map) {
 			map->structs[i].oldformat = true;
 		}
 	}
-	
+
 	char structjsonfilename[256] = {'b'};
 	snprintf(structjsonfilename, 256, "multiplay/maps/%s/struct.json", map->mapname);
 	zip_entry_open(zip, structjsonfilename);
@@ -1332,7 +1332,7 @@ int WMT_WriteMap(WZmap *map) {
 	}
 	zip_entry_write(zip, "}\n", _WMT_strsize("}\n"));
 	zip_entry_close(zip);
-	
+
 	char droidjsonfilename[256] = {'b'};
 	snprintf(droidjsonfilename, 256, "multiplay/maps/%s/droid.json", map->mapname);
 	zip_entry_open(zip, droidjsonfilename);
@@ -1355,7 +1355,7 @@ int WMT_WriteMap(WZmap *map) {
 	}
 	zip_entry_write(zip, "}\n", _WMT_strsize("}\n"));
 	zip_entry_close(zip);
-	
+
 	char featurejsonfilename[256] = {'b'};
 	snprintf(featurejsonfilename, 256, "multiplay/maps/%s/feature.json", map->mapname);
 	zip_entry_open(zip, featurejsonfilename);
@@ -1376,8 +1376,8 @@ int WMT_WriteMap(WZmap *map) {
 	}
 	zip_entry_write(zip, "}\n", _WMT_strsize("}\n"));
 	zip_entry_close(zip);
-	
-	
+
+
 	zip_close(zip);
 	return 1;
 }
@@ -1393,16 +1393,16 @@ void _WMT_PutZoomPixel(PngImage *img, int zoom, unsigned short x, unsigned short
 
 char* WMT_WriteImage(struct WZmap *map, bool CustomPath, char* CustomOutputPath, struct ImageOptions options) {
 	log_info("Drawing preview...");
-	char *pngfilename = (char*)malloc(sizeof(char)*MAX_PATH_LEN);
+	char *pngfilename = (char*)malloc(sizeof(char)*WMT_MAX_PATH_LEN);
 	if(pngfilename == NULL) {
 		log_fatal("Error allocation memory for output filename");
 		map->errorcode = -2;
 		return (char*)"";
 	}
 	if(CustomPath) {
-		snprintf(pngfilename, MAX_PATH_LEN, "%s", CustomOutputPath);
+		snprintf(pngfilename, WMT_MAX_PATH_LEN, "%s", CustomOutputPath);
 	} else {
-		snprintf(pngfilename, MAX_PATH_LEN, "./%s.png", map->mapname);
+		snprintf(pngfilename, WMT_MAX_PATH_LEN, "./%s.png", map->mapname);
 	}
 	PngImage OutputImg((unsigned int)map->maptotalx*options.ZoomLevel, (unsigned int)map->maptotaly*options.ZoomLevel);
 	for(unsigned short counterx=0; counterx<map->maptotalx; counterx++) {
@@ -1410,37 +1410,37 @@ char* WMT_WriteImage(struct WZmap *map, bool CustomPath, char* CustomOutputPath,
 			int nowposinarray = countery*map->maptotalx+counterx;
 			if(map->mapwater[nowposinarray] && options.DrawWater) {
 				if(options.SinglecolorWater)
-					_WMT_PutZoomPixel(&OutputImg, 
+					_WMT_PutZoomPixel(&OutputImg,
 									  options.ZoomLevel,
-									  counterx, 
-									  countery, 
-									  0, 
-									  0, 
+									  counterx,
+									  countery,
+									  0,
+									  0,
 									  255);
 				else
-					_WMT_PutZoomPixel(&OutputImg, 
+					_WMT_PutZoomPixel(&OutputImg,
 									  options.ZoomLevel,
-									  counterx, 
-									  countery, 
-									  map->mapheight[nowposinarray]/4, 
-									  map->mapheight[nowposinarray]/4, 
+									  counterx,
+									  countery,
+									  map->mapheight[nowposinarray]/4,
+									  map->mapheight[nowposinarray]/4,
 									  map->mapheight[nowposinarray]);
 			}
 			else if(map->mapcliff[nowposinarray] && options.DrawCliffsAsRed) {
-				_WMT_PutZoomPixel(&OutputImg, 
+				_WMT_PutZoomPixel(&OutputImg,
 								  options.ZoomLevel,
-								  counterx, 
-								  countery, 
-								  map->mapheight[nowposinarray], 
-								  map->mapheight[nowposinarray]/4, 
+								  counterx,
+								  countery,
+								  map->mapheight[nowposinarray],
+								  map->mapheight[nowposinarray]/4,
 								  map->mapheight[nowposinarray]/4);
 			} else {
-				_WMT_PutZoomPixel(&OutputImg, 
+				_WMT_PutZoomPixel(&OutputImg,
 								  options.ZoomLevel,
-								  counterx, 
-								  countery, 
-								  map->mapheight[nowposinarray], 
-								  map->mapheight[nowposinarray], 
+								  counterx,
+								  countery,
+								  map->mapheight[nowposinarray],
+								  map->mapheight[nowposinarray],
 								  map->mapheight[nowposinarray]);
 			}
 		}
@@ -1448,7 +1448,7 @@ char* WMT_WriteImage(struct WZmap *map, bool CustomPath, char* CustomOutputPath,
 	for(uint32_t i = 0; i<map->numStructures; i++) {
 		unsigned short strx = map->structs[i].x/128;
 		unsigned short stry = map->structs[i].y/128;
-		
+
 		//
 		//  [+0] [+1] [+2]
 		//  [+0] [+0] [+0]
@@ -1459,7 +1459,7 @@ char* WMT_WriteImage(struct WZmap *map, bool CustomPath, char* CustomOutputPath,
 		//  [+0] [+1] [+2]
 		//  [+2] [+2] [+2]
 		//
-		
+
 		if(options.DrawOilRigs) {
 			if(strcmp(map->structs[i].name, "A0ResourceExtractor") == 0) {
 				log_debug("Found extractor at %d %d", strx, stry);
@@ -1518,4 +1518,3 @@ char* WMT_WriteImage(struct WZmap *map, bool CustomPath, char* CustomOutputPath,
 	//printf("\nHeightmap written to %s\n", pngfilename);
 	return pngfilename;
 }
-

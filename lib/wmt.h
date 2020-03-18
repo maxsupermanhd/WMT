@@ -1,7 +1,7 @@
 /*
  * Copyright (C) Maxim Zhuchkov - All Rights Reserved
  * Unauthorized copying of this file, via any medium is strictly prohibited
- * Proprietary and confidential 
+ * Proprietary and confidential
  * Written by Maxim Zhuchkov <q3.max.2011@ya.ru>, May 2019
  */
 
@@ -33,15 +33,15 @@
 #include "TinyPngOut.hpp"
 #include "jfes.h"
 
-#define MAX_PATH_LEN 2048
+#define WMT_MAX_PATH_LEN 2048
 
 #ifdef _NOLOGBUILD
-#define log_trace(...) assert(true==true)
-#define log_debug(...) assert(true==true)
-#define log_info(...)  assert(true==true)
-#define log_warn(...)  assert(true==true)
-#define log_error(...) assert(true==true)
-#define log_fatal(...) assert(true==true)
+#define log_trace(...) ;
+#define log_debug(...) ;
+#define log_info(...)  ;
+#define log_warn(...)  ;
+#define log_error(...) ;
+#define log_fatal(...) ;
 #endif
 
 /*#ifndef typename(x)
@@ -113,7 +113,7 @@ struct WZobject {
 	uint32_t output;
 	uint32_t capacity;
 	uint32_t quantity;
-	
+
 	uint32_t factoryInc;
 	uint8_t loopsPerformed;
 	uint8_t structPadding4;
@@ -124,13 +124,13 @@ struct WZobject {
 	uint32_t droidTimeStarted;
 	uint32_t timeToBuild;
 	uint32_t timeStartHold;
-	
+
 	uint8_t visibility[8];
-	
+
 	char researchName[60];
 	//int type;
 	//char script[32];
-	
+
 	int modules = 0;
 	bool oldformat = false;
 };
@@ -158,14 +158,14 @@ struct WZlevel {
 struct WZmap {
 	char* path;
 	char* mapname;
-	
+
 	bool valid = true;
 	int errorcode = 0;
-	
+
 	char **filenames = NULL;
 	zip_t *zip;
 	int totalentries = -1;
-	
+
 	char createdon[128];
 	char createddate[128];
 	char createdauthor[128];
@@ -191,19 +191,19 @@ struct WZmap {
 	unsigned short *mapheight;
 	void *mapcontents;
 	ssize_t mapcontentslen;
-	
+
 	uint32_t structVersion;
 	uint32_t numStructures;
 	WZobject *structs = NULL;
-	
+
 	uint32_t featureVersion;
 	uint32_t featuresCount;
 	WZfeature *features = NULL;
-	
+
 	uint32_t droidsVersion;
 	uint32_t droidsCount;
 	WZdroid *droids = NULL;
-	
+
 	uint32_t gamVersion;
 	void* gamcontents;
 	ssize_t gamcontentslen;
@@ -215,7 +215,7 @@ struct WZmap {
 	uint32_t scrollmaxy;
 	char gamLevelName[20];
 	uint32_t gamPower[8];
-	
+
 	bool fields_clean = false;
 };
 
@@ -232,9 +232,9 @@ struct ImageOptions {
 struct PngImage {
 	int w=0, h=0;
 	long totalpixels;
-	char filename[MAX_PATH_LEN];
+	char filename[WMT_MAX_PATH_LEN];
 	uint8_t* pixels;
-	
+
 	PngImage(unsigned int nw, unsigned int nh) {
 		w=nw;
 		h=nh;
@@ -259,7 +259,7 @@ struct PngImage {
 		pixels[y*w*3+x*3+2] = b;
 		return true;
 	}
-	bool WriteImage(char filename[MAX_PATH_LEN]) {
+	bool WriteImage(char filename[WMT_MAX_PATH_LEN]) {
 		try {
 			std::ofstream out(filename, std::ios::binary);
 			TinyPngOut pngout(static_cast<uint32_t>(w), static_cast<uint32_t>(h), out);
@@ -273,18 +273,3 @@ struct PngImage {
 };
 
 #endif /* WMT_H_INCLUDED */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
