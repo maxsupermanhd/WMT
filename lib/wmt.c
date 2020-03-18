@@ -1190,7 +1190,7 @@ const char* WMT_CheckMap(WZmap *map) {
 
 */
 
-int WMT_WriteMap(WZmap *map) {
+int WMT_WriteMap(WZmap *map) { // TODO: add more sanity checks
 	log_info("Writing map...");
 	const char* CheckError = WMT_CheckMap(map);
 	if(CheckError != NULL) {
@@ -1380,7 +1380,7 @@ int WMT_WriteMap(WZmap *map) {
 
 
 	zip_close(zip);
-	return 1;
+	return 0;
 }
 
 void _WMT_PutZoomPixel(PngImage *img, int zoom, unsigned short x, unsigned short y, uint8_t r, uint8_t g, uint8_t b) {
