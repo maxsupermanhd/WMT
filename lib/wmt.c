@@ -1163,18 +1163,18 @@ void WMT_FreeMap(WZmap *map) {
 	map->fields_clean=true;
 }
 
-bool WMT_CheckMap(WZmap *map) {
+const char* WMT_CheckMap(WZmap *map) {
 	log_info("Checking map...");
 	if(!map->valid) {
 		log_error("Map not valid!");
-		return false;
+		return "Not valid map structure passed.";
 	}
 	if(map->players < 2 || map->players > 11) {
 		log_error("Wrong players count! (%d)", map->players);
-		return false;
+		return "Wronf player count (must be >2 & <11)";
 	}
 	log_info("Check completed! Nothing wrong found!");
-	return true;
+	return NULL;
 }
 
 /*
@@ -1192,8 +1192,9 @@ bool WMT_CheckMap(WZmap *map) {
 
 int WMT_WriteMap(WZmap *map) {
 	log_info("Writing map...");
-	if(WMT_CheckMap(map) == false) {
-		log_error("Map check failed! Please fix errors!");
+	const char* CheckError = WMT_CheckMap(map);
+	if(CheckError != NULL) {
+		log_error("Map check failed! Please fix errors! (%s)", CheckError);
 		return -1;
 	}
 

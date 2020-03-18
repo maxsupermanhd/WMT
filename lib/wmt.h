@@ -68,6 +68,7 @@ bool WMT_str_match(char* str, char* sub);
 int WMT_SearchFilename(char** arr, unsigned short sizearr, char* name, short urgent);
 void WMT_PrintInfoAboutMap(struct WZmap map);
 
+const char* WMT_CheckMap(WZmap *map);
 int WMT_WriteMap(WZmap *map);
 void WMT_ReadMap(char* filename, struct WZmap *map);
 char* WMT_WriteImage(struct WZmap *map, bool CustomPath, char* CustomOutputPath, struct ImageOptions);

@@ -11,7 +11,7 @@ int DebugPrintLevel = 0;
 char* wzmappath;
 bool IgnoreFree = false;
 bool CustomOutputPathFlag = false;
-char CustomOutputPath[MAX_PATH_LEN];
+char CustomOutputPath[WMT_MAX_PATH_LEN];
 bool picturezoomenabled = false;
 unsigned short picturezoom = 1;
 bool OpenWithFeh=false;
@@ -56,9 +56,9 @@ int ArgParse(int argc, char **argv) {
 			argcounter++;
 		} else if(WMT_equalstr(argv[argcounter], "-o")) {
 			CustomOutputPathFlag = true;
-			for(int i=0; i<MAX_PATH_LEN; i++)
+			for(int i=0; i<WMT_MAX_PATH_LEN; i++)
 				CustomOutputPath[i] = 0;
-			snprintf(CustomOutputPath, MAX_PATH_LEN, "%s", argv[argcounter+1]);
+			snprintf(CustomOutputPath, WMT_MAX_PATH_LEN, "%s", argv[argcounter+1]);
 			argcounter++;
 		} else if(WMT_equalstr(argv[argcounter], "--nowater")) {
 			options.DrawWater=false;
@@ -144,8 +144,8 @@ int main(int argc, char** argv)
 						log_fatal("No feh installed!");
 					} else {
 						log_info("Opening output with feh");
-						char fehcmd[MAX_PATH_LEN];
-						snprintf(fehcmd, MAX_PATH_LEN, "feh %s", outname);
+						char fehcmd[WMT_MAX_PATH_LEN];
+						snprintf(fehcmd, WMT_MAX_PATH_LEN, "feh %s", outname);
 						int retval = system(fehcmd);
 						log_debug("System call returned %d", retval);
 					}
@@ -335,31 +335,3 @@ int main(int argc, char** argv)
 	}
 	exit(-1);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
