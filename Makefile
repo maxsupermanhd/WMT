@@ -11,7 +11,7 @@ debug: WMT
 
 lib: CCFLAGS += -D_NOLOGBUILD
 lib: build/wmt.o build/png.o build/zip.o
-	g++ --shared -o wmt.so build/wmt.o build/png.o build/zip.o $(CCFLAGS)
+	g++ --shared -o libwmt.so build/wmt.o build/png.o build/zip.o $(CCFLAGS)
 
 pkg: WMT
 	cp WMT pkg/usr/bin
