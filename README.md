@@ -1,5 +1,7 @@
 # Warzone map tool
 
+[![Build status](https://ci.appveyor.com/api/projects/status/d08cc775etwm94d0?svg=true)](https://ci.appveyor.com/project/maxsupermanhd/wmt)
+
 Tool for viewing and generating previews of Warzone2100 maps.
 Works only with old map format generated with FlaME.
 
@@ -55,4 +57,3 @@ Just use .exe file from releases. (use cmd to run)
 
 You can write me in VK https://vk.com/1dontknow2 or mail q3.max.2011@ya.ru
 PR welcome. Open issues if you have any problems.
-
