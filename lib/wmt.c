@@ -594,12 +594,8 @@ bool WMT_ReadGameMapFile(WZmap *map) {
 						log_error("Fread scanned %d elements instead of %d (tileinfo)", mapreadret, 1);
 					maptiletexture = (maptileinfo & WMT_maptileoffset);
 					maptileterrain = (WMT_TerrainTypes)map->ttyptt[maptiletexture];
-					if(maptileterrain == ttwater) {
-						map->mapwater[counter]=true;
-					}
-					if(maptileterrain == ttclifface) {
-						map->mapcliff[counter]=true;
-					}
+					map->mapwater[counter]= maptileterrain == ttwater;
+					map->mapcliff[counter]= maptileterrain == ttclifface;
 					mapreadret = fread(&map->mapheight[counter], 1, 1, mapf);
 					if(mapreadret != 1)
 						log_error("Fread scanned %d elements instead of %d (height)", mapreadret, 1);
