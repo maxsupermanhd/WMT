@@ -187,6 +187,7 @@ struct WZmap {
 	unsigned int mapver = -1;
 	unsigned int maptotalx = -1;
 	unsigned int maptotaly = -1;
+	unsigned short maptile[90000];
 	bool mapwater[90000];
 	bool mapcliff[90000];
 	unsigned short *mapheight;

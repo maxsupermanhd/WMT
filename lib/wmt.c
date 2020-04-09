@@ -592,6 +592,7 @@ bool WMT_ReadGameMapFile(WZmap *map) {
 					mapreadret = fread(&maptileinfo, 2, 1, mapf);
 					if(mapreadret != 1)
 						log_error("Fread scanned %d elements instead of %d (tileinfo)", mapreadret, 1);
+					map->maptile = maptileinfo;
 					maptiletexture = (maptileinfo & WMT_maptileoffset);
 					maptileterrain = (WMT_TerrainTypes)map->ttyptt[maptiletexture];
 					map->mapwater[counter]= maptileterrain == ttwater;
