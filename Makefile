@@ -10,10 +10,11 @@ debug: CCFLAGS += -DDEBUG -g -Wall
 debug: WMT
 
 lib: CCFLAGS += -D_NOLOGBUILD
-lib: build/wmt.o build/png.o build/zip.o
-	g++ --shared -o libwmt.so build/wmt.o build/png.o build/zip.o $(CCFLAGS)
+lib: build/wmt.o build/zip.o
+	g++ --shared -o libwmt.so build/wmt.o build/zip.o $(CCFLAGS)
 
 pkg: WMT
+	mkdir -p ./pkg/usr/bin
 	cp WMT pkg/usr/bin
 	fakeroot dpkg-deb --build pkg WMT.deb
 

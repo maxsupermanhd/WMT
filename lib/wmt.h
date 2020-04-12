@@ -30,8 +30,6 @@
 #ifndef _NOLOGBUILD
 #include "log.h"
 #endif
-#include "TinyPngOut.hpp"
-#include "jfes.h"
 
 #define WMT_MAX_PATH_LEN 2048
 
@@ -71,7 +69,6 @@ void WMT_PrintInfoAboutMap(struct WZmap map);
 const char* WMT_CheckMap(WZmap *map);
 int WMT_WriteMap(WZmap *map);
 void WMT_ReadMap(char* filename, struct WZmap *map);
-char* WMT_WriteImage(struct WZmap *map, bool CustomPath, char* CustomOutputPath, struct ImageOptions);
 void WMT_FreeMap(WZmap *map);
 
 enum WZtileset { tileset_arizona, tileset_urban, tileset_rockies };
@@ -244,57 +241,5 @@ inline bool WMT_TileGetYFlip(unsigned short t) {
 inline char WMT_TileGetRotation(unsigned short t) {
 	return (t & WZTILE_ROTMASK) >> WZTILE_ROTSHIFT;}
 
-struct ImageOptions {
-	bool DrawWater = true;
-	bool DrawCliffsAsRed = true;
-	bool DrawBuildings = true;
-	bool DrawOilRigs = true;
-	bool SinglecolorWater = false;
-	bool ZoomEnabled = false;
-	int ZoomLevel = 1;
-};
-
-struct PngImage {
-	int w=0, h=0;
-	long totalpixels;
-	char filename[WMT_MAX_PATH_LEN];
-	uint8_t* pixels;
-
-	PngImage(unsigned int nw, unsigned int nh) {
-		w=nw;
-		h=nh;
-		totalpixels = nw*nh*3;
-		pixels = (uint8_t*) malloc(totalpixels*sizeof(uint8_t));
-	}
-	~PngImage() {
-		free(pixels);
-	}
-	bool PutPixel(short x, short y, uint8_t r, uint8_t g, uint8_t b) {
-		if(x<0 || x>w) {
-			log_error("Putting pixel out of bound! (putting to %d %d)", x, y);
-			return false;
-		}
-		if(y<0 || y>h) {
-			log_error("Putting pixel out of bound! (putting to %d %d)", x, y);
-			return false;
-		}
-		log_debug("Putting pixel to %d %d in %d", x, y, y*w*3+x*3);
-		pixels[y*w*3+x*3+0] = r;
-		pixels[y*w*3+x*3+1] = g;
-		pixels[y*w*3+x*3+2] = b;
-		return true;
-	}
-	bool WriteImage(char filename[WMT_MAX_PATH_LEN]) {
-		try {
-			std::ofstream out(filename, std::ios::binary);
-			TinyPngOut pngout(static_cast<uint32_t>(w), static_cast<uint32_t>(h), out);
-			pngout.write(pixels, static_cast<size_t>(w*h));
-			return true;
-		} catch (const std::exception& ex) {
-			log_error("%s", ex.what());
-			return false;
-		}
-	}
-};
 
 #endif /* WMT_H_INCLUDED */
