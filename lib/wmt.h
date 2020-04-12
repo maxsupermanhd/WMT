@@ -76,6 +76,18 @@ void WMT_FreeMap(WZmap *map);
 
 enum WZtileset { tileset_arizona, tileset_urban, tileset_rockies };
 
+#define WZTILE_XFLIPMASK       0x8000
+#define WZTILE_XFLIPSHIFT      15
+#define WZTILE_YFLIPMASK       0x4000
+#define WZTILE_YFLIPSHIFT      14
+#define WZTILE_ROTMASK         0x3000
+#define WZTILE_ROTSHIFT        12
+#define WZTILE_TRIFLIP         0x0800
+#define WZTILE_NUMMASK         0x01ff
+
+//src/map.h:330
+#define WZTTYPES_MAX 255
+
 struct WZdroid {
 	char name[128];
 	uint32_t id;
@@ -178,7 +190,7 @@ struct WZmap {
 
 	unsigned int ttypver = -1;
 	unsigned int ttypnum = -1;
-	unsigned short ttyptt[1200];
+	unsigned short ttyptt[WZTTYPES_MAX];
 	void *ttpcontents;
 	ssize_t ttpcontentslen;
 	WZtileset tileset = tileset_arizona;
@@ -188,8 +200,6 @@ struct WZmap {
 	unsigned int maptotalx = -1;
 	unsigned int maptotaly = -1;
 	unsigned short maptile[90000];
-	bool mapwater[90000];
-	bool mapcliff[90000];
 	unsigned short *mapheight;
 	void *mapcontents;
 	ssize_t mapcontentslen;
@@ -220,6 +230,19 @@ struct WZmap {
 
 	bool fields_clean = false;
 };
+
+inline bool WMT_TileGetTriFlip(unsigned short t) {
+	return t & WZTILE_TRIFLIP;}
+inline bool WMT_TileGetTexture(unsigned short t) {
+	return t & WZTILE_NUMMASK;}
+inline WMT_TerrainTypes WMT_TileGetTerrainType(unsigned short tile, unsigned short types[WZTTYPES_MAX]) {
+	return (WMT_TerrainTypes)(types[(short)(tile & WZTILE_NUMMASK)]);}
+inline bool WMT_TileGetXFlip(unsigned short t) {
+	return (t & WZTILE_XFLIPMASK) >> WZTILE_XFLIPSHIFT;}
+inline bool WMT_TileGetYFlip(unsigned short t) {
+	return (t & WZTILE_YFLIPMASK) >> WZTILE_YFLIPSHIFT;}
+inline char WMT_TileGetRotation(unsigned short t) {
+	return (t & WZTILE_ROTMASK) >> WZTILE_ROTSHIFT;}
 
 struct ImageOptions {
 	bool DrawWater = true;

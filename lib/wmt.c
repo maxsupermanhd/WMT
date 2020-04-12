@@ -583,20 +583,12 @@ bool WMT_ReadGameMapFile(WZmap *map) {
 				}
 				unsigned short maptileinfo = 0;
 				ssize_t mapreadret = -1;
-				short maptiletexture = -1;
 				WMT_TerrainTypes maptileterrain = ttsand;
 				for(int counter=0; counter<maparraysize; counter++)
 				{
-					//nowmapy = counter/map->maptotaly;
-					//nowmapx = counter-(nowmapy*map->maptotalx);
-					mapreadret = fread(&maptileinfo, 2, 1, mapf);
+					mapreadret = fread(&map->maptile[counter], 2, 1, mapf);
 					if(mapreadret != 1)
 						log_error("Fread scanned %d elements instead of %d (tileinfo)", mapreadret, 1);
-					map->maptile[counter] = maptileinfo;
-					maptiletexture = (maptileinfo & WMT_maptileoffset);
-					maptileterrain = (WMT_TerrainTypes)map->ttyptt[maptiletexture];
-					map->mapwater[counter]= maptileterrain == ttwater;
-					map->mapcliff[counter]= maptileterrain == ttclifface;
 					mapreadret = fread(&map->mapheight[counter], 1, 1, mapf);
 					if(mapreadret != 1)
 						log_error("Fread scanned %d elements instead of %d (height)", mapreadret, 1);
@@ -1406,7 +1398,8 @@ char* WMT_WriteImage(struct WZmap *map, bool CustomPath, char* CustomOutputPath,
 	for(unsigned short counterx=0; counterx<map->maptotalx; counterx++) {
 		for(unsigned short countery=0; countery<map->maptotaly; countery++) {
 			int nowposinarray = countery*map->maptotalx+counterx;
-			if(map->mapwater[nowposinarray] && options.DrawWater) {
+			WMT_TerrainTypes nowtype = WMT_TileGetTerrainType(map->maptile[nowposinarray], map->ttyptt);
+			if(nowtype == ttwater && options.DrawWater) {
 				if(options.SinglecolorWater)
 					_WMT_PutZoomPixel(&OutputImg,
 									  options.ZoomLevel,
@@ -1424,7 +1417,7 @@ char* WMT_WriteImage(struct WZmap *map, bool CustomPath, char* CustomOutputPath,
 									  map->mapheight[nowposinarray]/4,
 									  map->mapheight[nowposinarray]);
 			}
-			else if(map->mapcliff[nowposinarray] && options.DrawCliffsAsRed) {
+			else if(nowtype == ttclifface && options.DrawCliffsAsRed) {
 				_WMT_PutZoomPixel(&OutputImg,
 								  options.ZoomLevel,
 								  counterx,
