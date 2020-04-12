@@ -230,7 +230,7 @@ struct WZmap {
 
 inline bool WMT_TileGetTriFlip(unsigned short t) {
 	return t & WZTILE_TRIFLIP;}
-inline bool WMT_TileGetTexture(unsigned short t) {
+inline int WMT_TileGetTexture(unsigned short t) {
 	return t & WZTILE_NUMMASK;}
 inline WMT_TerrainTypes WMT_TileGetTerrainType(unsigned short tile, unsigned short types[WZTTYPES_MAX]) {
 	return (WMT_TerrainTypes)(types[(short)(tile & WZTILE_NUMMASK)]);}
