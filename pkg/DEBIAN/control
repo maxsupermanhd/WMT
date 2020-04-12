@@ -1,5 +1,5 @@
 Package: warzone2100-maptool
-Version: 1.8
+Version: 1.8.1
 Section: utils
 Priority: optional
 Depends: libstdc++6, libgcc1, libc6
