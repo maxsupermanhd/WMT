@@ -4,6 +4,9 @@ project(wmt VERSION 1.8.1 DESCRIPTION "Warzone2100 map converting/parsing librar
 
 set(CMAKE_STATIC_LIBRARY_PREFIX "")
 set(CMAKE_SHARED_LIBRARY_PREFIX "")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 include(GNUInstallDirs)
 add_library(libwmt SHARED lib/wmt.cpp lib/zip.cpp)
