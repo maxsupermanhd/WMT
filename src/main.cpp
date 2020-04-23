@@ -5,7 +5,7 @@
  * Written by Maxim Zhuchkov <q3.max.2011@ya.ru>, May 2019
  */
 
-#include "../lib/wmt.h"
+#include "../lib/wmt.hpp"
 #include "../lib/TinyPngOut.hpp"
 
 struct ImageOptions {

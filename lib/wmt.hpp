@@ -26,9 +26,9 @@
 #include <iostream>
 #include <errno.h>
 
-#include "zip.h"
+#include "zip.hpp"
 #ifndef _NOLOGBUILD
-#include "log.h"
+#include "log.hpp"
 #endif
 
 #define WMT_MAX_PATH_LEN 2048

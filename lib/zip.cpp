@@ -36,7 +36,7 @@ int symlink(const char *target, const char *linkpath); // needed on Linux
 #endif
 
 #include "miniz.h"
-#include "zip.h"
+#include "zip.hpp"
 
 #ifndef HAS_DEVICE
 #define HAS_DEVICE(P) 0
