@@ -674,23 +674,23 @@ bool WMT_ReadAddonLev(WZmap *map) {
 					}
 					else
 					{
-						log_info("Parsing \"%s\"", tmpline);
+						log_trace("Parsing \"%s\"", tmpline);
 						if(strstr(tmpline, "level") == tmpline) {
-							log_info("Level found!");
+							log_trace("Level found!");
 							LevelNumber++;
-							strcpy(map->levels[LevelNumber-1].name, tmpline+8);
+							strcpy(map->levels[LevelNumber-1].name, tmpline+6);
 						}
 						if(strstr(tmpline, "players") == tmpline) {
-							log_info("Players found!");
+							log_trace("Players found!");
 							map->levels[LevelNumber-1].players = atoi(tmpline+8);
 						}
 						if(strstr(tmpline, "type") == tmpline) {
-							log_info("Type found!");
-							map->levels[LevelNumber-1].type = atoi(tmpline+8);
+							log_trace("Type found!");
+							map->levels[LevelNumber-1].type = atoi(tmpline+5);
 						}
 						if(strstr(tmpline, "dataset") == tmpline) {
-							log_info("Level found!");
-							strcpy(map->levels[LevelNumber-1].dataset, tmpline+8);
+							log_trace("Level found!");
+							strcpy(map->levels[LevelNumber-1].dataset, tmpline+7);
 						}
 					}
 					linenumber++;
