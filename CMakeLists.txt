@@ -2,6 +2,9 @@ cmake_minimum_required(VERSION 3.9)
 
 project(wmt VERSION 1.8.1 DESCRIPTION "Warzone2100 map converting/parsing library built in C++")
 
+set(CMAKE_STATIC_LIBRARY_PREFIX "")
+set(CMAKE_SHARED_LIBRARY_PREFIX "")
+
 include(GNUInstallDirs)
 add_library(libwmt SHARED lib/wmt.cpp lib/zip.cpp)
 set_target_properties(libwmt PROPERTIES VERSION ${PROJECT_VERSION})
