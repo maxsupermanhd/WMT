@@ -268,7 +268,7 @@ bool WMT_ListFiles(WZmap *map) { //pass pointer to struct to make changes
 		int ret = zip_entry_openbyindex(map->zip, index);
 		if(ret>=0) {
 			snprintf(map->filenames[index], 1024, "%s", (char*)zip_entry_name(map->zip));
-			//log_trace("%d.\t%s", index, map->filenames[index]);
+			log_trace("%d.\t%s", index, map->filenames[index]);
 			zip_entry_close(map->zip);
 		}
 		else {
