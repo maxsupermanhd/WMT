@@ -7,6 +7,10 @@
 
 #include "wmt.h"
 #include <time.h>
+#include "../lib/json.hpp"
+#include <iostream>
+
+using json = nlohmann::json;
 
 #define _WMT_strsize(x) (sizeof(char)*strlen(x))
 
@@ -882,7 +886,7 @@ bool WMT_ReadStructs(WZmap *map) {
 	return success;
 }
 
-bool WMT_ReadFeaturesFile(WZmap *map) {
+bool WMT_OldReadFeaturesFile(WZmap *map) {
 	bool success = true;
 	int indexfeat = WMT_SearchFilename(map->filenames, map->totalentries, (char*)"feat.bjo", 2);
 	int openstatus = zip_entry_openbyindex(map->zip, indexfeat);
@@ -960,7 +964,52 @@ bool WMT_ReadFeaturesFile(WZmap *map) {
 	return success;
 }
 
-bool WMT_ReadDroidsFile(WZmap *map) {
+bool WMT_ReadFeaturesJSON(WZmap *map) {
+	size_t readlen;
+	void *content;
+	ssize_t readed = zip_entry_read(map->zip, &content, &readlen);
+	if(readed == -1) {
+		log_fatal("Error reading [%s] from archive.");
+		zip_entry_close(map->zip);
+		return false;
+	}
+	auto features = json::parse((char*)content);
+	map->featuresCount = features.size();
+	map->features = (WZfeature*)malloc(map->featuresCount*sizeof(WZfeature));
+	int fcounter = 0;
+	for(auto feature : features) {  // FIXME: should be better way of getting values from json
+		log_debug("%s", feature.dump().c_str());
+		map->features[fcounter].id = atoi(feature["id"].dump().c_str());
+		map->features[fcounter].player = atoi(feature["startpos"].dump().c_str());
+		map->features[fcounter].x = atoi(feature["position"][0].dump().c_str());
+		map->features[fcounter].y = atoi(feature["position"][1].dump().c_str());
+		map->features[fcounter].z = atoi(feature["position"][2].dump().c_str());
+		//// WARNING! Next line is super-hack and should be replaced with something else!
+		snprintf(map->features[fcounter].name, 128, "%.*s", (int)strlen(feature["name"].dump().c_str())-2, feature["name"].dump().c_str()+1);
+	}
+	free(content);
+	zip_entry_close(map->zip);
+	return true;
+}
+
+bool WMT_ReadFeaturesFile(WZmap *map) {
+	if(map->levelsfound<=0) {
+		log_warn("No levels found! Searching by filename.");
+		return WMT_OldReadFeaturesFile(map);
+	}
+	char ffname[WMT_MAX_PATH_LEN];
+	snprintf(ffname, WMT_MAX_PATH_LEN, "multiplay/maps/%s/feature.json", map->levels[0].name);
+	int ecode = zip_entry_open(map->zip, ffname);
+	if(ecode < 0) {
+		log_error("Failed to open [%s] file according to found levels. Error code %d.", ffname, ecode);
+		return WMT_OldReadFeaturesFile(map);
+	} else {
+		return WMT_ReadFeaturesJSON(map);
+	}
+}
+
+
+bool WMT_OldReadDroidsFile(WZmap *map) {
 	bool success = true;
 	int indexdint = WMT_SearchFilename(map->filenames, map->totalentries, (char*)"dinit.bjo", 2);
 	int openstatus = zip_entry_openbyindex(map->zip, indexdint);
@@ -1035,6 +1084,56 @@ bool WMT_ReadDroidsFile(WZmap *map) {
 	return success;
 }
 
+bool WMT_ReadDroidsJSON(WZmap *map) {
+	size_t readlen;
+	void *content;
+	ssize_t readed = zip_entry_read(map->zip, &content, &readlen);
+	if(readed == -1) {
+		log_fatal("Error reading [%s] from archive.");
+		zip_entry_close(map->zip);
+		return false;
+	}
+	auto droids = json::parse((char*)content);
+	map->droidsCount = droids.size();
+	map->droids = (WZdroid*)malloc(map->droidsCount*sizeof(WZdroid));
+	int dcounter = 0;
+	for(auto droid : droids) {  // FIXME: should be better way of getting values from json
+		//log_debug("%s", droid.dump().c_str());
+		map->droids[dcounter].id = droid["id"].get<int>();
+		map->droids[dcounter].player = droid["startpos"].get<int>();
+		map->droids[dcounter].x = droid["position"][0].get<int>();
+		map->droids[dcounter].y = droid["position"][1].get<int>();
+		map->droids[dcounter].z = droid["position"][2].get<int>();
+		//// WARNING! Next line is super-hack and should be replaced with something else!
+		snprintf(map->droids[dcounter].name, 128, "%.*s", (int)strlen(droid["template"].dump().c_str())-2, droid["template"].dump().c_str()+1);
+		// log_debug("d: %6d %2d %8d %8d %8d [%s]", map->droids[dcounter].id,
+		// 	map->droids[dcounter].player,
+		// 	map->droids[dcounter].x,
+		// 	map->droids[dcounter].y,
+		// 	map->droids[dcounter].z,
+		// 	map->droids[dcounter].name);
+	}
+	free(content);
+	zip_entry_close(map->zip);
+	return true;
+}
+
+bool WMT_ReadDroidsFile(WZmap *map) {
+	if(map->levelsfound<=0) {
+		log_warn("No levels found! Searching by filename.");
+		return WMT_OldReadDroidsFile(map);
+	}
+	char dfname[WMT_MAX_PATH_LEN];
+	snprintf(dfname, WMT_MAX_PATH_LEN, "multiplay/maps/%s/droid.json", map->levels[0].name);
+	int ecode = zip_entry_open(map->zip, dfname);
+	if(ecode < 0) {
+		log_error("Failed to open [%s] file according to found levels. Error code %d.", dfname, ecode);
+		return WMT_OldReadDroidsFile(map);
+	} else {
+		return WMT_ReadDroidsJSON(map);
+	}
+}
+
 void WMT_ReadMap(char* filename, WZmap *map) {
 	//struct WZmap map = (struct WZmap)malloc(sizeof(struct WZmap));
 	map->path=filename;
@@ -1073,6 +1172,12 @@ void WMT_ReadMap(char* filename, WZmap *map) {
 		map->valid=false;
 		return;
 	}
+	log_debug("Reading addon...");
+	if(!WMT_ReadAddonLev(map)) {
+		log_fatal("Error reading addon file!");
+		map->valid=false;
+		return;
+	}
 	log_debug("Reading GAM...");
 	if(!WMT_ReadGAMFile(map)) {
 		log_fatal("Error reading gam file!");
@@ -1091,6 +1196,12 @@ void WMT_ReadMap(char* filename, WZmap *map) {
 		map->valid=false;
 		return;
 	}
+	log_debug("Reading droids...");
+	if(!WMT_ReadDroidsFile(map)) {
+		log_fatal("Error reading droid file!");
+		map->valid=false;
+		return;
+	}
 	log_debug("Reading structs...");
 	if(!WMT_ReadStructs(map)) {
 		log_fatal("Error reading struct file!");
@@ -1100,18 +1211,6 @@ void WMT_ReadMap(char* filename, WZmap *map) {
 	log_debug("Reading features...");
 	if(!WMT_ReadFeaturesFile(map)) {
 		log_fatal("Error reading features file!");
-		map->valid=false;
-		return;
-	}
-	log_debug("Reading droids...");
-	if(!WMT_ReadDroidsFile(map)) {
-		log_fatal("Error reading droid file!");
-		map->valid=false;
-		return;
-	}
-	log_debug("Reading addon...");
-	if(!WMT_ReadAddonLev(map)) {
-		log_fatal("Error reading addon file!");
 		map->valid=false;
 		return;
 	}
