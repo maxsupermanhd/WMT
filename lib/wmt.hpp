@@ -33,7 +33,7 @@
 
 #define WMT_MAX_PATH_LEN 2048
 
-#ifdef _NOLOGBUILD
+#ifdef defined(_NOLOGBUILD) || defined(libwmt_EXPORTS)
 #define log_trace(...) ;
 #define log_debug(...) ;
 #define log_info(...)  ;

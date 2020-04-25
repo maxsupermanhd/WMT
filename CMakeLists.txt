@@ -13,7 +13,7 @@ add_library(libwmt SHARED lib/wmt.cpp lib/zip.cpp)
 set_target_properties(libwmt PROPERTIES VERSION ${PROJECT_VERSION})
 set_target_properties(libwmt PROPERTIES SOVERSION 1)
 set_target_properties(libwmt PROPERTIES PUBLIC_HEADER lib/wmt.hpp)
-target_include_directories(libwmt PRIVATE lib/.)
+target_include_directories(libwmt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/lib/.)
 install(TARGETS libwmt
 	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 	PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
