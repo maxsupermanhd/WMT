@@ -2,6 +2,8 @@ cmake_minimum_required(VERSION 3.9)
 
 project(wmt VERSION 1.8.1 DESCRIPTION "Warzone2100 map converting/parsing library built in C++")
 
+option(WMT_BUILD_EXECUTABLE "Build WMT executable" ON)
+
 set(CMAKE_STATIC_LIBRARY_PREFIX "")
 set(CMAKE_SHARED_LIBRARY_PREFIX "")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
