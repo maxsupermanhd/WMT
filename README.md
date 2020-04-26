@@ -1,6 +1,7 @@
 # Warzone map tool
 
 [![Build status](https://ci.appveyor.com/api/projects/status/d08cc775etwm94d0?svg=true)](https://ci.appveyor.com/project/maxsupermanhd/wmt)
+[![Version](https://badge.fury.io/gh/maxsupermanhd%2FWMT.svg)](https://github.com/maxsupermanhd/WMT)
 
 Tool for viewing and generating previews of Warzone2100 maps.
 Works only with old map format generated with FlaME.
