@@ -5,7 +5,7 @@
  * Written by Maxim Zhuchkov <q3.max.2011@ya.ru>, May 2019
  */
 
-#include "wmt.h"
+#include "wmt.hpp"
 #include <time.h>
 #include "../lib/json.hpp"
 #include <iostream>

@@ -26,7 +26,7 @@
 #include <string.h>
 #include <time.h>
 
-#include "log.h"
+#include "log.hpp"
 
 static struct {
   void *udata;
@@ -134,4 +134,3 @@ void log_log(int level, const char *file, int line, const char *fmt, ...) {
   /* Release lock */
   unlock();
 }
-

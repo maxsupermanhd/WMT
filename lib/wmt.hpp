@@ -26,14 +26,20 @@
 #include <iostream>
 #include <errno.h>
 
-#include "zip.h"
+#include "zip.hpp"
 #ifndef _NOLOGBUILD
-#include "log.h"
+#include "log.hpp"
 #endif
 
 #define WMT_MAX_PATH_LEN 2048
 
-#ifdef _NOLOGBUILD
+#if !defined(_NOLOGBUILD) || !defined(libwmt_EXPORTS)
+#undef log_trace
+#undef log_debug
+#undef log_info
+#undef log_warn
+#undef log_error
+#undef log_fatal
 #define log_trace(...) ;
 #define log_debug(...) ;
 #define log_info(...)  ;

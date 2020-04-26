@@ -5,7 +5,7 @@
  * Written by Maxim Zhuchkov <q3.max.2011@ya.ru>, May 2019
  */
 
-#include "../lib/wmt.h"
+#include "../lib/wmt.hpp"
 #include "../lib/TinyPngOut.hpp"
 
 struct ImageOptions {
@@ -289,9 +289,9 @@ int main(int argc, char** argv)
 			outname = WMT_WriteImage(&buildmap, CustomOutputPathFlag, CustomOutputPath, options);
 			printf("Image written to: %s\n", outname);
 			if(OpenWithFeh) {
-				if(outname == NULL)
+				if(outname == NULL) {
 					log_fatal("Null filename! (%d)", buildmap.errorcode);
-				else {
+				} else {
 					int dpkg_ret = system("dpkg-query -s 'feh' > /dev/null 2>&1\n");
 					if(dpkg_ret == 256) {
 						log_fatal("No feh installed!");
