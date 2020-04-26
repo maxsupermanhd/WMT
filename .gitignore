@@ -59,3 +59,7 @@ WMT
 
 # Map storage
 *.wz
+
+# build storage
+build/*
+!build/README.md
