@@ -23,10 +23,7 @@ install(TARGETS libwmt
 configure_file(libwmt.pc.in libwmt.pc @ONLY)
 install(FILES ${CMAKE_BINARY_DIR}/libwmt.pc DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig)
 
-add_library(libpng STATIC lib/TinyPngOut.cpp)
-add_library(liblog STATIC lib/log.cpp)
-
-add_executable(wmt src/main.cpp)
+if(WMT_BUILD_EXECUTABLE)
+add_executable(wmt src/main.cpp lib/TinyPngOut.cpp lib/log.cpp)
 target_link_libraries(wmt libwmt)
-target_link_libraries(wmt libpng)
-target_link_libraries(wmt liblog)
+endif()
