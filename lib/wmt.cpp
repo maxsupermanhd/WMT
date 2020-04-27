@@ -9,6 +9,7 @@
 #include <time.h>
 #include "../lib/json.hpp"
 #include <iostream>
+#include <string>
 
 using json = nlohmann::json;
 
@@ -717,7 +718,7 @@ bool WMT_ReadAddonLev(WZmap *map) {
 	return true;
 }
 
-bool WMT_ReadStructs(WZmap *map) {
+bool WMT_OldReadStructs(WZmap *map) {
 	bool success = true;
 	int indexstructs = WMT_SearchFilename(map->filenames, map->totalentries, (char*)"struct.bjo");
 	if(indexstructs == -1) {
@@ -886,6 +887,103 @@ bool WMT_ReadStructs(WZmap *map) {
 	return success;
 }
 
+bool WMT_ReadStructsJSON(WZmap *map) {
+	size_t readlen;
+	char *content;
+	ssize_t readed = zip_entry_read(map->zip, (void**)&content, &readlen);
+	if(readed == -1)
+	{
+		log_fatal("Error reading [%s] from archive.");
+		zip_entry_close(map->zip);
+		return false;
+	}
+	content[readlen] = '\0';
+	auto structs = json::parse((char*)content);
+	map->numStructures = structs.size();
+	map->structs = (WZobject*)malloc(map->numStructures*sizeof(WZobject));
+	int scounter = 0;
+	log_debug("Reading structs JSON...");
+	bool noID = false;
+	for(json::iterator stru = structs.begin(); stru != structs.end(); stru++)
+	{
+		auto st = stru.value();
+		if(st.contains("id") &&
+		   st["startpos"].is_number())
+		{
+			map->structs[scounter].id = st["id"].get<int>();
+		}
+		else if(sscanf(stru.key().c_str(), "structure_%d", &map->structs[scounter].id) != 1) {
+			log_warn("Error getting structure id! [%s] [%d]", stru.key().c_str(), st.contains("id"));
+			log_debug("structure dump: v[%s] k[%s]", stru.value().dump().c_str(), stru.key().c_str());
+		}
+		else
+		{
+			map->structs[scounter].id = scounter;
+			if(!noID)
+			{
+				log_error("No id field in structure JSON! Counting objects...", stru.key().c_str(), st.contains("id"));
+				log_debug("structure dump: v[%s] k[%s]", stru.value().dump().c_str(), stru.key().c_str());
+				noID = true;
+			}
+		}
+
+		if(st.contains("startpos") && st["startpos"].is_number())
+		{
+			map->structs[scounter].player = st["startpos"].get<int>();
+		}
+		else if(st.contains("player"))
+		{
+			if(st["player"].is_number())
+			{
+				map->structs[scounter].player = st["player"].get<int>();
+			}
+			else
+			{
+				if(st["startpos"].is_string() &&
+				   strcmp(st["player"].get<std::string>().c_str(), "scavenger") == 0)
+				{
+					log_warn("No startpos or player in structure JSON. Interpreting as scavangers.");
+					map->structs[scounter].player = -1;
+				}
+			}
+		}
+		else
+		{
+			map->structs[scounter].player = -1;
+		}
+		map->structs[scounter].x = st["position"][0].get<int>();
+		map->structs[scounter].y = st["position"][1].get<int>();
+		map->structs[scounter].z = st["position"][2].get<int>();
+		map->structs[scounter].rotation[0] = st["rotation"][0].get<int>();
+		map->structs[scounter].rotation[1] = st["rotation"][1].get<int>();
+		map->structs[scounter].rotation[2] = st["rotation"][2].get<int>();
+		strncpy(map->structs[scounter].name, st["name"].get<std::string>().c_str(), 128);
+		scounter++;
+	}
+	free(content);
+	zip_entry_close(map->zip);
+	return true;
+}
+
+bool WMT_ReadStructs(WZmap *map) {
+	if(map->levelsfound<=0)
+	{
+		log_warn("No levels found! Searching by filename.");
+		return WMT_OldReadStructs(map);
+	}
+	char sfname[WMT_MAX_PATH_LEN];
+	snprintf(sfname, WMT_MAX_PATH_LEN, "multiplay/maps/%s/struct.json", map->levels[0].name);
+	int ecode = zip_entry_open(map->zip, sfname);
+	if(ecode < 0)
+	{
+		return WMT_OldReadStructs(map);
+	}
+	else
+	{
+		return WMT_ReadStructsJSON(map);
+	}
+}
+
 bool WMT_OldReadFeaturesFile(WZmap *map) {
 	bool success = true;
 	int indexfeat = WMT_SearchFilename(map->filenames, map->totalentries, (char*)"feat.bjo", 2);
@@ -966,26 +1064,59 @@ bool WMT_OldReadFeaturesFile(WZmap *map) {
 
 bool WMT_ReadFeaturesJSON(WZmap *map) {
 	size_t readlen;
-	void *content;
-	ssize_t readed = zip_entry_read(map->zip, &content, &readlen);
+	char *content;
+	ssize_t readed = zip_entry_read(map->zip, (void**)&content, &readlen);
 	if(readed == -1) {
 		log_fatal("Error reading [%s] from archive.");
 		zip_entry_close(map->zip);
 		return false;
 	}
+	content[readlen] = '\0';
+	log_debug("Reading features JSON...");
+	log_info("%d", readlen);
 	auto features = json::parse((char*)content);
 	map->featuresCount = features.size();
 	map->features = (WZfeature*)malloc(map->featuresCount*sizeof(WZfeature));
 	int fcounter = 0;
-	for(auto feature : features) {  // FIXME: should be better way of getting values from json
-		log_debug("%s", feature.dump().c_str());
-		map->features[fcounter].id = atoi(feature["id"].dump().c_str());
-		map->features[fcounter].player = atoi(feature["startpos"].dump().c_str());
-		map->features[fcounter].x = atoi(feature["position"][0].dump().c_str());
-		map->features[fcounter].y = atoi(feature["position"][1].dump().c_str());
-		map->features[fcounter].z = atoi(feature["position"][2].dump().c_str());
-		//// WARNING! Next line is super-hack and should be replaced with something else!
-		snprintf(map->features[fcounter].name, 128, "%.*s", (int)strlen(feature["name"].dump().c_str())-2, feature["name"].dump().c_str()+1);
+	bool wrongID = false;
+	for(auto feature : features)
+	{
+		if(feature.contains("id"))
+		{
+			map->features[fcounter].id = feature["id"].get<int>();
+		}
+		else
+		{
+			map->features[fcounter].id = fcounter;
+			if(!wrongID)
+			{
+				log_warn("Features don't have \"id\" field. Counting objects instead. Further messages suppresed.");
+				log_debug("feature dump: [%s]", feature.dump().c_str());
+				wrongID = true;
+			}
+		}
+
+		if(feature.contains("startpos"))
+		{
+			map->features[fcounter].player = feature["startpos"].get<int>();
+		}
+
+		if(feature.contains("name"))
+		{
+			strncpy(map->features[fcounter].name, feature["name"].get<std::string>().c_str(), 128);
+		}
+		else
+		{
+			log_fatal("features JSON does not contain \"name\" field!");
+			log_debug("feature dump: [%s]", feature.dump().c_str());
+			free(content);
+			zip_entry_close(map->zip);
+			return false;
+		}
+		map->features[fcounter].x = feature["position"][0].get<int>();
+		map->features[fcounter].y = feature["position"][1].get<int>();
+		map->features[fcounter].z = feature["position"][2].get<int>();
+		fcounter++;
 	}
 	free(content);
 	zip_entry_close(map->zip);
@@ -1001,7 +1132,6 @@ bool WMT_ReadFeaturesFile(WZmap *map) {
 	snprintf(ffname, WMT_MAX_PATH_LEN, "multiplay/maps/%s/feature.json", map->levels[0].name);
 	int ecode = zip_entry_open(map->zip, ffname);
 	if(ecode < 0) {
-		log_error("Failed to open [%s] file according to found levels. Error code %d.", ffname, ecode);
 		return WMT_OldReadFeaturesFile(map);
 	} else {
 		return WMT_ReadFeaturesJSON(map);
@@ -1086,32 +1216,27 @@ bool WMT_OldReadDroidsFile(WZmap *map) {
 
 bool WMT_ReadDroidsJSON(WZmap *map) {
 	size_t readlen;
-	void *content;
-	ssize_t readed = zip_entry_read(map->zip, &content, &readlen);
+	char *content;
+	ssize_t readed = zip_entry_read(map->zip, (void**)&content, &readlen);
 	if(readed == -1) {
 		log_fatal("Error reading [%s] from archive.");
 		zip_entry_close(map->zip);
 		return false;
 	}
+	content[readlen] = '\0';
+	log_debug("Reading droids JSON...");
 	auto droids = json::parse((char*)content);
 	map->droidsCount = droids.size();
 	map->droids = (WZdroid*)malloc(map->droidsCount*sizeof(WZdroid));
 	int dcounter = 0;
-	for(auto droid : droids) {  // FIXME: should be better way of getting values from json
-		//log_debug("%s", droid.dump().c_str());
+	for(auto droid : droids) {
 		map->droids[dcounter].id = droid["id"].get<int>();
 		map->droids[dcounter].player = droid["startpos"].get<int>();
 		map->droids[dcounter].x = droid["position"][0].get<int>();
 		map->droids[dcounter].y = droid["position"][1].get<int>();
 		map->droids[dcounter].z = droid["position"][2].get<int>();
-		//// WARNING! Next line is super-hack and should be replaced with something else!
-		snprintf(map->droids[dcounter].name, 128, "%.*s", (int)strlen(droid["template"].dump().c_str())-2, droid["template"].dump().c_str()+1);
-		// log_debug("d: %6d %2d %8d %8d %8d [%s]", map->droids[dcounter].id,
-		// 	map->droids[dcounter].player,
-		// 	map->droids[dcounter].x,
-		// 	map->droids[dcounter].y,
-		// 	map->droids[dcounter].z,
-		// 	map->droids[dcounter].name);
+		strncpy(map->droids[dcounter].name, droid["template"].get<std::string>().c_str(), 128);
+		dcounter++;
 	}
 	free(content);
 	zip_entry_close(map->zip);
@@ -1127,7 +1252,6 @@ bool WMT_ReadDroidsFile(WZmap *map) {
 	snprintf(dfname, WMT_MAX_PATH_LEN, "multiplay/maps/%s/droid.json", map->levels[0].name);
 	int ecode = zip_entry_open(map->zip, dfname);
 	if(ecode < 0) {
-		log_error("Failed to open [%s] file according to found levels. Error code %d.", dfname, ecode);
 		return WMT_OldReadDroidsFile(map);
 	} else {
 		return WMT_ReadDroidsJSON(map);

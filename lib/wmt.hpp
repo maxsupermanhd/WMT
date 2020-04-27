@@ -111,6 +111,7 @@ struct WZobject {
 	uint32_t y;
 	uint32_t z;
 	uint32_t direction;
+	int rotation[3];
 	uint32_t player;
 	bool infire;
 	uint32_t burnStart;
