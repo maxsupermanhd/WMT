@@ -29,7 +29,7 @@ Works only with old map format generated with FlaME.
 5. To build shared library consider rebuilding completely with `make clean; make lib`
 
 #### With `CMake`
-1. Install CMake. Do it somehow. Also get dependencies from `make` method.
+1. Install CMake(3.10+). Do it somehow. Also get dependencies from `make` method.
 2. Create build directory. ex: `mkdir build`
 3. Navigate to build directory. ex: `cd build`
 4. Run CMake over project directory with any flags you want. ex: `cmake -G"Ninja" -DCMAKE_BUILD_TYPE=MinSizeRel ..`
