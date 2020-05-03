@@ -8,6 +8,7 @@ Works only with old map format generated with FlaME.
 
 - [x] Read old formats of Warzone2100 maps.
 - [x] Read FlaME comments in file headers.
+- [ ] Read https://wz2100.euphobos.ru map database comments.
 - [x] Make preview images.
 - [x] Tweak colors of cliffs, terrain, water tiles.
 - [x] Analyze map by structures count.
@@ -15,10 +16,7 @@ Works only with old map format generated with FlaME.
 - [x] Provide easy wrapper to Warzone 2100 map format.
 - [x] Windows support. (see below)
 - [x] CMake build system.
-- [ ] Read new map format. (JSON) (will be added soon)
-- [ ] Create map renders. (like from in game)
-- [ ] Edit maps. (Will be added in a separate app)
-- [ ] GUI for Windows users.
+- [x] Read 3.3+ map format. (JSON)
 
 # How to build
 
@@ -73,5 +71,9 @@ For more details see LICENSE file.
 
 # Contact me
 
-You can write me in VK https://vk.com/1dontknow2 or mail q3.max.2011@ya.ru
+You can contact me and ask any interesting questions:
+ - VK https://vk.com/1dontknow2
+ - Mail q3.max.2011@ya.ru
+ - Discord MaX#6717 (https://discord.gg/mJ5qzck)
+ - TeamSpeak3 server on https://warzone2100.pro
 PR welcome. Open issues if you have any problems.
