@@ -1073,8 +1073,9 @@ bool WMT_ReadFeaturesJSON(WZmap *map) {
 	}
 	content[readlen] = '\0';
 	log_debug("Reading features JSON...");
-	log_info("%d", readlen);
-	auto features = json::parse((char*)content);
+	log_debug("%d %d [%s]", readlen, zip_entry_size(map->zip), (char*)content);
+	std::string fst((char*)content);
+	auto features = json::parse(fst);
 	map->featuresCount = features.size();
 	map->features = (WZfeature*)malloc(map->featuresCount*sizeof(WZfeature));
 	int fcounter = 0;
@@ -1230,11 +1231,75 @@ bool WMT_ReadDroidsJSON(WZmap *map) {
 	map->droids = (WZdroid*)malloc(map->droidsCount*sizeof(WZdroid));
 	int dcounter = 0;
 	for(auto droid : droids) {
-		map->droids[dcounter].id = droid["id"].get<int>();
-		map->droids[dcounter].player = droid["startpos"].get<int>();
-		map->droids[dcounter].x = droid["position"][0].get<int>();
-		map->droids[dcounter].y = droid["position"][1].get<int>();
-		map->droids[dcounter].z = droid["position"][2].get<int>();
+		if(droid.contains("id"))
+		{
+			if(droid["id"].is_number_integer())
+			{
+				map->droids[dcounter].id = droid["id"].get<int>();
+			}
+		}
+		if(droid.contains("startpos"))
+		{
+			if(droid["startpos"].is_string())
+			{
+				if(droid["startpos"].get<std::string>() == "scavenger")
+				{
+					map->droids[dcounter].player = -1;
+				}
+			}
+			else if(droid["startpos"].is_number_integer())
+			{
+				map->droids[dcounter].player = droid["startpos"].get<int>();
+			}
+			else
+			{
+				log_error("Not valid startpos field in droid JSON!");
+				map->droids[dcounter].player = -2;
+			}
+		}
+		else if(droid.contains("player"))
+		{
+			if(droid["player"].is_string())
+			{
+				if(droid["player"].get<std::string>() == "scavenger")
+				{
+					map->droids[dcounter].player = -1;
+				}
+			}
+			else if(droid["player"].is_number_integer())
+			{
+				map->droids[dcounter].player = droid["startpos"].get<int>();
+			}
+			else
+			{
+				log_error("Not valid player field in droid JSON!");
+				map->droids[dcounter].player = -2;
+			}
+		}
+		if(droid.contains("position"))
+		{
+			if(droid["position"].is_array())
+			{
+				if(droid["position"].size() == 3)
+				{
+					for(int i=0; i<3; i++)
+					{
+						if(droid["position"][i].is_number_integer()) {
+							map->droids[dcounter].x = droid["position"][i].get<int>();
+						}
+						else
+						{
+							log_warn("Droid %d position %d is not integer! [%s]", dcounter, i, droid.dump().c_str());
+						}
+					}
+				}
+				else
+				{
+					if(droid["position"].size() < 3)
+					log_error("No valid position! [%s]", droid.dump().c_str());
+				}
+			}
+		}
 		strncpy(map->droids[dcounter].name, droid["template"].get<std::string>().c_str(), 128);
 		dcounter++;
 	}
