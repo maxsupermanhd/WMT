@@ -59,6 +59,7 @@ WMT
 
 # Map storage
 *.wz
+*.zip
 
 # build storage
 build/*

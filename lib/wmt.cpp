@@ -888,9 +888,9 @@ bool WMT_OldReadStructs(WZmap *map) {
 }
 
 bool WMT_ReadStructsJSON(WZmap *map) {
-	size_t readlen;
-	char *content;
-	ssize_t readed = zip_entry_read(map->zip, (void**)&content, &readlen);
+	size_t readlen = zip_entry_size(map->zip);
+	char* content = (char*)malloc(readlen+1);
+	ssize_t readed = zip_entry_noallocread(map->zip, (void*)content, readlen);
 	if(readed == -1)
 	{
 		log_fatal("Error reading [%s] from archive.");
@@ -898,7 +898,7 @@ bool WMT_ReadStructsJSON(WZmap *map) {
 		return false;
 	}
 	content[readlen] = '\0';
-	auto structs = json::parse((char*)content);
+	auto structs = json::parse(content);
 	map->numStructures = structs.size();
 	map->structs = (WZobject*)malloc(map->numStructures*sizeof(WZobject));
 	int scounter = 0;
@@ -1063,9 +1063,9 @@ bool WMT_OldReadFeaturesFile(WZmap *map) {
 }
 
 bool WMT_ReadFeaturesJSON(WZmap *map) {
-	size_t readlen;
-	char *content;
-	ssize_t readed = zip_entry_read(map->zip, (void**)&content, &readlen);
+	size_t readlen = zip_entry_size(map->zip);
+	char* content = (char*)malloc(readlen+1);
+	ssize_t readed = zip_entry_noallocread(map->zip, content, readlen);
 	if(readed == -1) {
 		log_fatal("Error reading [%s] from archive.");
 		zip_entry_close(map->zip);
@@ -1073,9 +1073,8 @@ bool WMT_ReadFeaturesJSON(WZmap *map) {
 	}
 	content[readlen] = '\0';
 	log_debug("Reading features JSON...");
-	log_debug("%d %d [%s]", readlen, zip_entry_size(map->zip), (char*)content);
-	std::string fst((char*)content);
-	auto features = json::parse(fst);
+	log_debug("%d %d", readlen, zip_entry_size(map->zip));
+	auto features = json::parse(content);
 	map->featuresCount = features.size();
 	map->features = (WZfeature*)malloc(map->featuresCount*sizeof(WZfeature));
 	int fcounter = 0;
@@ -1216,9 +1215,9 @@ bool WMT_OldReadDroidsFile(WZmap *map) {
 }
 
 bool WMT_ReadDroidsJSON(WZmap *map) {
-	size_t readlen;
-	char *content;
-	ssize_t readed = zip_entry_read(map->zip, (void**)&content, &readlen);
+	size_t readlen = zip_entry_size(map->zip);
+	char *content = (char*)malloc(readlen+1);
+	ssize_t readed = zip_entry_noallocread(map->zip, content, readlen);
 	if(readed == -1) {
 		log_fatal("Error reading [%s] from archive.");
 		zip_entry_close(map->zip);
