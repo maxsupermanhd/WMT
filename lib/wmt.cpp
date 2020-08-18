@@ -25,6 +25,7 @@ const char *WMT_TerrainTypesStrings[] = {"sand", "sandy brush", "baked earth", "
 unsigned short WMT_maptileoffset = 0x01ff;
 
 #ifdef _WIN32
+#ifndef __MINGW32__
 int vasprintf(char** strp, const char* fmt, va_list ap) {
 	va_list ap2;
 	va_copy(ap2, ap);
@@ -43,6 +44,7 @@ int asprintf(char **strp, const char *fmt, ...) {
     va_end(ap);
     return r;
 }
+#endif
 
 size_t getline(char **lineptr, size_t *n, FILE *stream) {
     char *bufptr = NULL;
