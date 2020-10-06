@@ -30,11 +30,11 @@ build/log.o: lib/log.c lib/log.h
 build/png.o: lib/TinyPngOut.cpp lib/TinyPngOut.hpp
 	g++ lib/TinyPngOut.cpp -o build/png.o -c $(CCFLAGS)
 
-build/zip.o: lib/zip.c lib/zip.h
-	g++ lib/zip.c -o build/zip.o -c $(CCFLAGS)
+build/zip.o: lib/zip.cpp lib/zip.hpp
+	g++ lib/zip.cpp -o build/zip.o -c $(CCFLAGS)
 
-build/wmt.o: lib/wmt.c lib/wmt.h
-	g++ lib/wmt.c -o build/wmt.o -c -std=c++17 $(CCFLAGS)
+build/wmt.o: lib/wmt.cpp lib/wmt.hpp
+	g++ lib/wmt.cpp -o build/wmt.o -c -std=c++17 $(CCFLAGS)
 
 clean:
 ifeq ($(OS),Windows_NT)
