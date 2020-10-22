@@ -600,6 +600,7 @@ bool WMT_ReadGameMapFile(WZmap *map) {
 					if(mapreadret != 1)
 						log_error("Fread scanned %d elements instead of %d (height)", mapreadret, 1);
 				}
+				fclose(mapf);
 			}
 		}
 		//FIXME there should be freeing too!
@@ -1350,27 +1351,54 @@ void WMT_FreeMap(WZmap *map) {
 		return;
 	}
 
-	free(map->mapname);
-	map->mapname = NULL;
+	if(map->mapname) {
+		free(map->mapname);
+		map->mapname = NULL;
+	}
 
-	free(map->mapheight);
-	map->mapheight = NULL;
+	if(map->mapheight) {
+		free(map->mapheight);
+		map->mapheight = NULL;
+	}
 
-	free(map->structs);
-	map->structs = NULL;
+	if(map->structs) {
+		free(map->structs);
+		map->structs = NULL;
+	}
 
-	free(map->features);
-	map->features = NULL;
+	if(map->features) {
+		free(map->features);
+		map->features = NULL;
+	}
 
-	free(map->gamcontents);
-	map->gamcontents = NULL;
+	if(map->gamcontents) {
+		free(map->gamcontents);
+		map->gamcontents = NULL;
+	}
 
 	for(int i=0; i<map->totalentries; i++) {
 		free(map->filenames[i]);
 		map->filenames[i] = NULL;
 	}
-	free(map->filenames);
-	map->filenames = NULL;
+	if(map->filenames) {
+		free(map->filenames);
+		map->filenames = NULL;
+	}
+
+	if(map->ttpcontents) {
+		free(map->ttpcontents);
+		map->ttpcontents = NULL;
+	}
+
+	if(map->droids) {
+		free(map->droids);
+		map->droids = NULL;
+	}
+
+	if(map->mapcontents) {
+		free(map->mapcontents);
+		map->mapcontents = NULL;
+	}
 
 	zip_entry_close(map->zip);
 	zip_close(map->zip);
