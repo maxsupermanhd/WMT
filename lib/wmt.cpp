@@ -1342,6 +1342,7 @@ void WMT_ReadMap(char* filename, WZmap *map) {
 		return;
 	}
 	log_info("Map reading done!");
+	map->valid=true;
 	return;
 }
 
