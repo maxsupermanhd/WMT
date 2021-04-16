@@ -966,13 +966,17 @@ bool WMT_ReadStructsJSON(WZmap *map) {
 		{
 			map->structs[scounter].player = -1;
 		}
-		map->structs[scounter].x = st["position"][0].get<int>();
-		map->structs[scounter].y = st["position"][1].get<int>();
-		map->structs[scounter].z = st["position"][2].get<int>();
-		map->structs[scounter].rotation[0] = st["rotation"][0].get<int>();
-		map->structs[scounter].rotation[1] = st["rotation"][1].get<int>();
-		map->structs[scounter].rotation[2] = st["rotation"][2].get<int>();
+		if(!st["name"].is_string()) {
+			log_warn("Object without name, [%s]", st.dump().c_str());
+			continue;
+		}
 		strncpy(map->structs[scounter].name, st["name"].get<std::string>().c_str(), 128);
+		map->structs[scounter].x = st["position"][0].is_number()?st["position"][0].get<int>():0;
+		map->structs[scounter].y = st["position"][1].is_number()?st["position"][1].get<int>():0;
+		map->structs[scounter].z = st["position"][2].is_number()?st["position"][2].get<int>():0;
+		map->structs[scounter].rotation[0] = st["rotation"][0].is_number()?st["rotation"][0].get<int>():0;
+		map->structs[scounter].rotation[1] = st["rotation"][1].is_number()?st["rotation"][1].get<int>():0;
+		map->structs[scounter].rotation[2] = st["rotation"][2].is_number()?st["rotation"][2].get<int>():0;
 		scounter++;
 	}
 	free(content);
