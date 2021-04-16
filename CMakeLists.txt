@@ -15,6 +15,9 @@ set(CMAKE_COLOR_MAKEFILE   ON)
 if(WMT_BUILD_EXECUTABLE)
 	add_library(liblog SHARED lib/log.cpp)
 	target_compile_definitions(liblog PRIVATE LOG_USE_COLOR)
+	install(TARGETS liblog
+			LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+			COMPONENT library)
 endif()
 
 include(GNUInstallDirs)
