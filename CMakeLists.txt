@@ -2,10 +2,6 @@ cmake_minimum_required(VERSION 3.10)
 
 project(wmt VERSION 1.8.3 DESCRIPTION "Warzone2100 map converting/parsing library built in C++")
 
-set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6, libgcc1, libc6")
-set(CPACK_PACKAGE_CONTACT "q3.max.2011@yandex.ru")
-set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Maxim Zhuchkov")
-include(CPack)
 
 option(WMT_BUILD_EXECUTABLE "Build WMT executable" ON)
 
@@ -33,13 +29,26 @@ set_target_properties(libwmt PROPERTIES SOVERSION 1)
 set_target_properties(libwmt PROPERTIES PUBLIC_HEADER lib/wmt.hpp)
 target_include_directories(libwmt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/lib/.)
 install(TARGETS libwmt
-	LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-	PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+		PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+		COMPONENT library)
 configure_file(libwmt.pc.in libwmt.pc @ONLY)
-install(FILES ${CMAKE_BINARY_DIR}/libwmt.pc DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig)
+install(FILES ${CMAKE_BINARY_DIR}/libwmt.pc
+		DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig)
 
 if(WMT_BUILD_EXECUTABLE)
 	add_executable(wmt src/main.cpp lib/TinyPngOut.cpp)
 	target_link_libraries(wmt libwmt)
 	target_link_libraries(wmt liblog)
+	install(TARGETS wmt
+			RUNTIME
+			DESTINATION bin
+			COMPONENT applications)
 endif()
+
+
+set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6, libgcc1, libc6")
+set(CPACK_PACKAGE_CONTACT "q3.max.2011@yandex.ru")
+set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Maxim Zhuchkov")
+set(CPACK_COMPONENTS_ALL library applications)
+include(CPack)
