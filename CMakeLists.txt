@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.10)
 
-project(wmt VERSION 1.8.1 DESCRIPTION "Warzone2100 map converting/parsing library built in C++")
+project(wmt VERSION 1.8.3 DESCRIPTION "Warzone2100 map converting/parsing library built in C++")
 
 set(CPACK_DEBIAN_PACKAGE_DEPENDS "libstdc++6, libgcc1, libc6")
 set(CPACK_PACKAGE_CONTACT "q3.max.2011@yandex.ru")

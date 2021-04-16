@@ -21,7 +21,7 @@
 #define WMT_H_INCLUDED
 
 #ifndef WMT_VERSION
-#define WMT_VERSION "1.8.1"
+#define WMT_VERSION "1.8.3"
 #endif
 
 #ifndef _GNU_SOURCE
