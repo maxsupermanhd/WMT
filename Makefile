@@ -21,11 +21,11 @@ pkg: WMT
 check-pkg: pkg
 	lintian WMT.deb
 
-WMT: build/log.o build/png.o build/zip.o build/wmt.o src/main.c
-	g++ build/wmt.o build/log.o build/png.o build/zip.o src/main.c -o WMT $(CCFLAGS)
+WMT: build/log.o build/png.o build/zip.o build/wmt.o src/main.cpp
+	g++ build/wmt.o build/log.o build/png.o build/zip.o src/main.cpp -o WMT $(CCFLAGS)
 
-build/log.o: lib/log.c lib/log.h
-	g++ lib/log.c -o build/log.o -c -DLOG_USE_COLOR $(CCFLAGS)
+build/log.o: lib/log.cpp lib/log.hpp
+	g++ lib/log.cpp -o build/log.o -c -DLOG_USE_COLOR $(CCFLAGS)
 
 build/png.o: lib/TinyPngOut.cpp lib/TinyPngOut.hpp
 	g++ lib/TinyPngOut.cpp -o build/png.o -c $(CCFLAGS)
