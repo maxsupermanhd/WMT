@@ -1,6 +1,6 @@
 /*
     This file is part of WMT.
-    Copyright (C) 2019-2021  Maxim Zhuchkov
+    Copyright (C) 2019-2022  Maxim Zhuchkov
 
     WMT is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 
 #include "wmt.hpp"
 #include <time.h>
-#include "../lib/json.hpp"
+#include "json.hpp"
 #include <iostream>
 #include <string>
 

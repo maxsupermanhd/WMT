@@ -13,7 +13,7 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_COLOR_MAKEFILE   ON)
 
 if(WMT_BUILD_EXECUTABLE)
-	add_library(liblog SHARED lib/log.cpp)
+	add_library(liblog SHARED lib/log/log.cpp)
 	target_compile_definitions(liblog PRIVATE LOG_USE_COLOR)
 	install(TARGETS liblog
 			LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -21,16 +21,20 @@ if(WMT_BUILD_EXECUTABLE)
 endif()
 
 include(GNUInstallDirs)
-add_library(libwmt SHARED lib/wmt.cpp lib/zip.cpp)
-if(WMT_BUILD_EXECUTABLE)
-	target_link_libraries(libwmt liblog)
-else()
-	target_compile_definitions(libwmt PRIVATE _NOLOGBUILD)
-endif()
+add_library(libwmt SHARED src/wmt.cpp lib/zip/zip.cpp)
 set_target_properties(libwmt PROPERTIES VERSION ${PROJECT_VERSION})
 set_target_properties(libwmt PROPERTIES SOVERSION 1)
-set_target_properties(libwmt PROPERTIES PUBLIC_HEADER lib/wmt.hpp)
-target_include_directories(libwmt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/lib/.)
+set_target_properties(libwmt PROPERTIES PUBLIC_HEADER include/wmt.hpp)
+if(WMT_BUILD_EXECUTABLE)
+	target_link_libraries(libwmt liblog)
+	target_include_directories(libwmt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/lib/log)
+else()
+	target_compile_definitions(libwmt PUBLIC _NOLOGBUILD)
+endif()
+target_include_directories(libwmt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include)
+target_include_directories(libwmt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/lib/zip)
+target_include_directories(libwmt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/lib/json)
+target_include_directories(libwmt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/lib/ini)
 install(TARGETS libwmt
 		LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
 		PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
@@ -40,7 +44,8 @@ install(FILES ${CMAKE_BINARY_DIR}/libwmt.pc
 		DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig)
 
 if(WMT_BUILD_EXECUTABLE)
-	add_executable(wmt src/main.cpp lib/TinyPngOut.cpp)
+	add_executable(wmt src/main.cpp lib/png/TinyPngOut.cpp)
+	target_include_directories(libwmt PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/lib/png)
 	target_link_libraries(wmt libwmt)
 	target_link_libraries(wmt liblog)
 	install(TARGETS wmt

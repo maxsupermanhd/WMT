@@ -1,6 +1,6 @@
 /*
     This file is part of WMT.
-    Copyright (C) 2019-2021  Maxim Zhuchkov
+    Copyright (C) 2019-2022  Maxim Zhuchkov
 
     WMT is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,8 +17,8 @@
     Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA
 */
 
-#include "../lib/wmt.hpp"
-#include "../lib/TinyPngOut.hpp"
+#include "wmt.hpp"
+#include "TinyPngOut.hpp"
 
 struct ImageOptions {
 	bool DrawWater = true;

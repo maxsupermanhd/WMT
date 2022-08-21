@@ -63,3 +63,9 @@ WMT
 # build storage
 build/*
 !build/README.md
+
+# pngs
+*.png
+
+# deb
+WMT.deb
